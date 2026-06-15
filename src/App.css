@@ -1,0 +1,124 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 28px;
+  background: #0d1724;
+  color: #f7f9fc;
+}
+
+.app-header {
+  max-width: 1400px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.app-header h1 {
+  margin: 4px 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+.app-header p {
+  margin: 0;
+  color: #b6c2d1;
+}
+
+.eyebrow,
+.mission-number {
+  color: #ff9d2e !important;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.status-badge {
+  padding: 10px 16px;
+  border: 1px solid #3e536b;
+  border-radius: 999px;
+  background: #142437;
+  white-space: nowrap;
+}
+
+.workspace {
+  width: min(1400px, 100%);
+  min-height: 680px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  overflow: hidden;
+  border: 1px solid #2e435b;
+  border-radius: 20px;
+  background: #142437;
+}
+
+.robot-scene {
+  min-height: 680px;
+}
+
+.mission-panel {
+  padding: 30px;
+  border-left: 1px solid #2e435b;
+  background: #101e2e;
+}
+
+.mission-panel h2 {
+  margin-top: 6px;
+}
+
+.mission-panel p,
+.mission-panel li {
+  color: #c4ceda;
+  line-height: 1.6;
+}
+
+.system-status {
+  margin-top: 30px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #2e435b;
+  border-radius: 12px;
+}
+
+.system-status strong {
+  color: #5ce19d;
+}
+
+@media (max-width: 850px) {
+  .app {
+    padding: 16px;
+  }
+
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .robot-scene {
+    min-height: 500px;
+  }
+
+  .mission-panel {
+    border-top: 1px solid #2e435b;
+    border-left: none;
+  }
+}
