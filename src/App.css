@@ -144,15 +144,18 @@ button:disabled {
   background: #06233f;
 }
 
-.midpoint-reference-loading {
-  min-height: 210px;
+.range-video-card {
   display: grid;
-  place-items: center;
+  gap: 14px;
+}
+
+.range-video-card video {
+  width: 100%;
+  max-height: min(56vh, 520px);
+  display: block;
   border: 1px solid #2e435b;
   border-radius: 10px;
-  background: #06233f;
-  color: #dbe6f3;
-  font-weight: 800;
+  background: #030912;
 }
 
 .midpoint-reference-card div {
@@ -185,11 +188,22 @@ button:disabled {
   background: #06233f;
 }
 
-.operation-midpoint-reference .midpoint-reference-loading {
-  min-height: 120px;
-  border-color: #22364c;
+.operation-midpoint-reference video {
+  width: 100%;
+  display: block;
+  border: 1px solid #22364c;
   border-radius: 8px;
-  font-size: 0.84rem;
+  background: #030912;
+}
+
+.side-terminal-layout .operation-midpoint-reference img {
+  max-height: 190px;
+  object-fit: cover;
+}
+
+.side-terminal-layout .operation-midpoint-reference video {
+  max-height: 220px;
+  object-fit: contain;
 }
 
 .operation-midpoint-reference div {
@@ -658,6 +672,20 @@ button:disabled {
   background: #142437;
 }
 
+.game-layout.setup-only-layout {
+  grid-template-columns: 1fr;
+}
+
+.game-layout.setup-only-layout .content-panel {
+  min-height: auto;
+  border-left: none;
+}
+
+.game-layout.side-terminal-layout {
+  width: min(1600px, 100%);
+  grid-template-columns: minmax(620px, 1fr) minmax(500px, 620px);
+}
+
 .visual-panel {
   position: relative;
   min-width: 0;
@@ -734,6 +762,27 @@ button:disabled {
   padding: 30px;
   border-left: 1px solid #2e435b;
   background: #101e2e;
+}
+
+.side-terminal-layout .content-panel {
+  min-height: 640px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.side-terminal-layout .robot-scene {
+  min-height: 640px;
+  height: min(72vh, 760px);
+}
+
+.side-terminal-layout .game-card h2 {
+  margin: 2px 0 0;
+  font-size: 1.42rem;
+  line-height: 1.12;
+}
+
+.side-terminal-layout .mission-label {
+  margin-bottom: 4px;
 }
 
 .game-card h2,
@@ -1023,6 +1072,793 @@ button:disabled {
 .calibration-terminal .terminal-output {
   min-height: 330px;
   max-height: 430px;
+}
+
+.side-terminal-layout .terminal-window {
+  min-height: 260px;
+}
+
+.side-terminal-layout .terminal-output {
+  min-height: 210px;
+  max-height: min(38vh, 360px);
+}
+
+.side-terminal-layout .calibration-terminal .terminal-output {
+  min-height: 260px;
+  max-height: min(42vh, 420px);
+}
+
+.side-terminal-layout .setup-command-card {
+  padding: 10px;
+}
+
+.side-terminal-layout .setup-command-card pre {
+  max-height: 120px;
+}
+
+.connection-mini-game {
+  display: grid;
+  gap: 14px;
+}
+
+.connection-game-header {
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #2e435b;
+  border-radius: 12px;
+  background: #142437;
+}
+
+.connection-game-header span {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 157, 46, 0.15);
+  color: #ffcf92;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.connection-game-header strong {
+  color: white;
+  font-size: 1.18rem;
+}
+
+.connection-game-header p {
+  margin: 0;
+}
+
+.connection-game-board {
+  position: relative;
+  height: clamp(390px, 58vh, 680px);
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid #2e435b;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 52% 49%, rgba(92, 225, 157, 0.18), transparent 15%),
+    radial-gradient(circle at 87% 52%, rgba(239, 68, 68, 0.12), transparent 12%),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    #0b1725;
+  background-size: auto, 28px 28px, 28px 28px, auto;
+  touch-action: none;
+}
+
+.connection-game-board.dragging {
+  cursor: grabbing;
+}
+
+.connection-model-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.connection-model-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.connection-model-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.connection-computer,
+.follower-controller-board,
+.singapore-socket {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid #38546f;
+  border-radius: 12px;
+  background: rgba(20, 36, 55, 0.96);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.connection-computer {
+  left: 6%;
+  top: 17%;
+  width: 124px;
+  height: 132px;
+  padding: 12px 12px 16px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.connection-screen {
+  height: 58px;
+  border: 1px solid #45657f;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #07101a, #102a42);
+  box-shadow: inset 0 -10px 18px rgba(96, 165, 250, 0.12);
+}
+
+.connection-screen::after {
+  content: "";
+  display: block;
+  width: 42%;
+  height: 3px;
+  margin: 50px auto 0;
+  border-radius: 999px;
+  background: #5d7692;
+}
+
+.connection-keyboard {
+  height: 20px;
+  border: 1px solid #405b75;
+  border-radius: 5px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+    #1d2f43;
+  background-size: 9px 100%;
+}
+
+.connection-computer strong,
+.follower-controller-board strong,
+.singapore-socket strong {
+  color: #dbe6f3;
+  font-size: 0.82rem;
+}
+
+.usb-port {
+  position: absolute;
+  width: 30px;
+  height: 18px;
+  border: 2px solid #b8c4d1;
+  border-radius: 4px;
+  background:
+    linear-gradient(#111827 0 0) center / 18px 8px no-repeat,
+    #07101a;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.computer-port {
+  right: -15px;
+  top: 42%;
+}
+
+.controller-port {
+  left: -15px;
+  top: 31%;
+  border-color: #ffcf92;
+  box-shadow: 0 0 0 5px rgba(255, 207, 146, 0.12), 0 0 24px rgba(255, 157, 46, 0.5);
+}
+
+.controller-port.connected {
+  border-color: #5ce19d;
+  box-shadow: 0 0 0 5px rgba(92, 225, 157, 0.14), 0 0 26px rgba(92, 225, 157, 0.55);
+}
+
+.connection-cable-line {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.connection-cable-line path {
+  fill: none;
+  stroke: #10151d;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+
+.connection-cable-line .connection-cable-highlight {
+  stroke: #2f3b4a;
+  stroke-width: 1.1;
+  opacity: 0.9;
+}
+
+.connection-cable-line .power-cable-path {
+  fill: none;
+  stroke: #05070a;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.connection-cable-line .power-cable-path.powered {
+  stroke: #111827;
+  filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.55));
+}
+
+.usb-cable-connector {
+  position: absolute;
+  z-index: 4;
+  width: 76px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #101820;
+  font-size: 0.7rem;
+  font-weight: 900;
+  cursor: grab;
+}
+
+.usb-metal-tip,
+.usb-connector-body,
+.usb-cable-neck {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.usb-metal-tip {
+  right: 0;
+  width: 21px;
+  height: 16px;
+  border: 1px solid #aeb8c4;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, transparent 44%, #7c8793 44% 56%, transparent 56%),
+    #d9e0e8;
+}
+
+.usb-connector-body {
+  right: 20px;
+  width: 42px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #6f7b89;
+  border-radius: 7px;
+  background: linear-gradient(#f8fafc, #cbd5e1);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.usb-cable-neck {
+  left: 0;
+  width: 18px;
+  height: 13px;
+  border-radius: 999px 0 0 999px;
+  background: #111827;
+}
+
+.usb-cable-connector.connected .usb-connector-body {
+  background: #5ce19d;
+  border-color: #b8ffd7;
+  animation: snapPulse 0.46s ease;
+}
+
+.usb-cable-connector.connected {
+  cursor: default;
+}
+
+.follower-controller-board {
+  left: 47%;
+  top: 36%;
+  z-index: 3;
+  width: 132px;
+  height: 118px;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+  background: #164a38;
+  transform: rotate(-1deg);
+}
+
+.follower-controller-board::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: -14px;
+  z-index: -1;
+  width: 126px;
+  height: 150px;
+  border: 1px solid rgba(211, 220, 232, 0.82);
+  border-radius: 16px 16px 10px 10px;
+  background: rgba(248, 250, 252, 0.34);
+  box-shadow: inset 0 -8px 0 rgba(203, 213, 225, 0.28);
+}
+
+.board-chip {
+  width: 46px;
+  height: 36px;
+  border-radius: 8px;
+  background: #111827;
+  box-shadow:
+    62px 5px 0 -10px #77838d,
+    64px 43px 0 -12px #77838d,
+    34px 60px 0 -16px #b8c4d1;
+}
+
+.board-pin-header {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  width: 62px;
+  height: 14px;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, #d1d5db 0 5px, transparent 5px 10px),
+    #111827;
+}
+
+.board-mount-hole {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0a1f19;
+  border: 1px solid #95b6a7;
+}
+
+.board-mount-hole.top-left {
+  left: 8px;
+  top: 8px;
+}
+
+.board-mount-hole.top-right {
+  right: 8px;
+  top: 8px;
+}
+
+.board-mount-hole.bottom-left {
+  left: 8px;
+  bottom: 8px;
+}
+
+.board-mount-hole.bottom-right {
+  right: 8px;
+  bottom: 8px;
+}
+
+.board-led {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #233143;
+}
+
+.board-led.on {
+  background: #5ce19d;
+  box-shadow: 0 0 18px rgba(92, 225, 157, 0.9);
+}
+
+.power-terminal {
+  position: absolute;
+  right: -8px;
+  top: 70%;
+  width: 18px;
+  height: 30px;
+  border: 1px solid #a3c9b7;
+  border-radius: 4px;
+  background:
+    linear-gradient(#384151 0 0) center 8px / 9px 3px no-repeat,
+    linear-gradient(#384151 0 0) center 19px / 9px 3px no-repeat,
+    #67c28e;
+}
+
+.singapore-socket {
+  right: 5%;
+  top: 33%;
+  width: 132px;
+  height: 130px;
+  padding: 13px;
+  display: grid;
+  gap: 8px;
+  background: #e8edf3;
+  color: #142437;
+}
+
+.singapore-socket strong {
+  color: #142437;
+  font-size: 0.74rem;
+}
+
+.type-g-slot {
+  position: absolute;
+  border-radius: 3px;
+  background: #1d2835;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.earth-slot {
+  left: 58px;
+  top: 44px;
+  width: 14px;
+  height: 28px;
+}
+
+.live-slot,
+.neutral-slot {
+  top: 78px;
+  width: 12px;
+  height: 24px;
+}
+
+.live-slot {
+  left: 38px;
+}
+
+.neutral-slot {
+  right: 38px;
+}
+
+.socket-switch {
+  width: 40px;
+  height: 34px;
+  position: relative;
+  justify-self: end;
+  border: 1px solid #451313;
+  border-radius: 6px;
+  background: linear-gradient(#2f1111, #5b1414);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08), 0 6px 12px rgba(0, 0, 0, 0.22);
+}
+
+.socket-switch span {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 28px;
+  height: 22px;
+  border-radius: 4px;
+  background: linear-gradient(#ef4444, #991b1b);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.2), inset 0 -5px 0 rgba(0, 0, 0, 0.22);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.socket-switch span::after {
+  content: "I";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.socket-switch.on {
+  border-color: #7f1d1d;
+  background: linear-gradient(#5b1414, #7f1d1d);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.08),
+    0 0 18px rgba(239, 68, 68, 0.4);
+}
+
+.socket-switch.on span {
+  transform: translateY(-3px);
+  background: linear-gradient(#ff5c5c, #dc2626);
+}
+
+.power-board-plug,
+.power-socket-plug {
+  position: absolute;
+  z-index: 4;
+  display: block;
+  pointer-events: none;
+}
+
+.power-board-plug {
+  left: calc(47% + 126px);
+  top: calc(36% + 76px);
+  width: 34px;
+  height: 25px;
+  border: 1px solid #293546;
+  border-radius: 6px 10px 10px 6px;
+  background: linear-gradient(#f8fafc, #cbd5e1);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.power-board-plug::before {
+  content: "";
+  position: absolute;
+  left: -11px;
+  top: 7px;
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+  background: #111827;
+}
+
+.power-socket-plug {
+  right: calc(5% + 118px);
+  top: calc(33% + 54px);
+  width: 36px;
+  height: 30px;
+  border: 1px solid #202a36;
+  border-radius: 14px 7px 7px 14px;
+  background: linear-gradient(#f8fafc, #cbd5e1);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.power-socket-plug::before,
+.power-socket-plug::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  width: 9px;
+  height: 4px;
+  border-radius: 2px;
+  background: #a3aebd;
+}
+
+.power-socket-plug::before {
+  top: 8px;
+}
+
+.power-socket-plug::after {
+  bottom: 8px;
+}
+
+.power-board-plug.powered,
+.power-socket-plug.powered {
+  box-shadow:
+    0 0 0 4px rgba(92, 225, 157, 0.12),
+    0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.setup-follower-arm {
+  position: absolute;
+  left: 38%;
+  top: 10%;
+  z-index: 2;
+  width: 240px;
+  height: 156px;
+  transform: scale(0.82);
+  transform-origin: left top;
+}
+
+.setup-arm-base,
+.setup-arm-link,
+.setup-arm-joint,
+.setup-arm-motor,
+.setup-arm-gripper,
+.setup-arm-wire {
+  position: absolute;
+  display: block;
+}
+
+.setup-arm-base {
+  left: 24px;
+  top: 92px;
+  width: 76px;
+  height: 30px;
+  border-radius: 10px 10px 5px 5px;
+  background: #f5f7fa;
+  border: 1px solid #c9d2df;
+  box-shadow: inset 0 -5px 0 #dbe3ef;
+}
+
+.setup-arm-base::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  bottom: -10px;
+  width: 40px;
+  height: 10px;
+  border-radius: 0 0 8px 8px;
+  background: #cbd5e1;
+}
+
+.setup-arm-joint {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 5px solid #f8fafc;
+  background: #6b7782;
+  box-shadow: inset 0 0 0 4px #dbe3ef;
+}
+
+.setup-shoulder-pan {
+  left: 62px;
+  top: 62px;
+}
+
+.setup-arm-link {
+  border: 1px solid #c9d2df;
+  border-radius: 999px;
+  background: #f7f9fc;
+  box-shadow: inset 0 -4px 0 #dbe3ef;
+  transform-origin: left center;
+}
+
+.setup-arm-back-plate {
+  position: absolute;
+  left: 42px;
+  top: 14px;
+  width: 146px;
+  height: 78px;
+  border: 1px solid #d3dce8;
+  border-radius: 16px;
+  background: #f7f4e8;
+  box-shadow: inset 0 -8px 0 rgba(203, 213, 225, 0.42);
+}
+
+.setup-arm-back-plate::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  width: 104px;
+  height: 44px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.setup-rear-link {
+  left: 86px;
+  top: 50px;
+  width: 92px;
+  height: 22px;
+  transform: rotate(-7deg);
+}
+
+.setup-arm-motor {
+  width: 34px;
+  height: 30px;
+  border-radius: 7px;
+  background: #171b22;
+  border: 1px solid #5c6877;
+}
+
+.setup-shoulder-motor {
+  left: 86px;
+  top: 60px;
+}
+
+.setup-arm-wire {
+  height: 3px;
+  border-radius: 999px;
+  transform-origin: left center;
+}
+
+.setup-arm-wire.red-wire {
+  left: 30px;
+  top: 24px;
+  width: 154px;
+  background: #c83b3b;
+  transform: rotate(20deg);
+}
+
+.setup-arm-wire.black-wire {
+  left: 28px;
+  top: 35px;
+  width: 158px;
+  background: #05070a;
+  transform: rotate(18deg);
+}
+
+.connection-success-burst {
+  position: absolute;
+  right: 18%;
+  top: 23%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.connection-success-burst span {
+  position: absolute;
+  width: 8px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffcf92;
+  --burst-x: -28px;
+  animation: miniConfetti 0.9s ease-out both;
+}
+
+.connection-success-burst span:nth-child(2) {
+  background: #5ce19d;
+  --burst-x: 4px;
+  animation-delay: 0.06s;
+}
+
+.connection-success-burst span:nth-child(3) {
+  background: #ff6b6b;
+  --burst-x: 28px;
+  animation-delay: 0.1s;
+}
+
+.connection-success-burst span:nth-child(4) {
+  background: #60a5fa;
+  --burst-x: -4px;
+  animation-delay: 0.14s;
+}
+
+.connection-game-feedback {
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #2e435b;
+  border-radius: 10px;
+  background: #142437;
+}
+
+.connection-game-feedback strong {
+  color: #ffcf92;
+}
+
+.connection-game-feedback span {
+  color: #c4ceda;
+}
+
+.connection-game-feedback.ready {
+  border-color: #5ce19d;
+}
+
+.connection-game-feedback.ready strong {
+  color: #5ce19d;
+}
+
+.connection-checks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.connection-checks span {
+  padding: 10px;
+  border: 1px solid #2e435b;
+  border-radius: 10px;
+  background: #142437;
+  color: #9faec0;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.connection-checks span.complete {
+  border-color: #5ce19d;
+  color: #5ce19d;
+}
+
+@keyframes snapPulse {
+  0% {
+    scale: 1;
+  }
+
+  55% {
+    scale: 1.14;
+  }
+
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes miniConfetti {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(var(--burst-x), 58px) rotate(220deg);
+  }
 }
 
 .terminal-live-table {
@@ -1556,6 +2392,29 @@ button:disabled {
   gap: 16px;
 }
 
+.side-terminal-layout .teleoperation-game,
+.side-terminal-layout .calibration-game {
+  gap: 10px;
+}
+
+.side-terminal-layout .stage-callout,
+.side-terminal-layout .teleop-status-banner,
+.side-terminal-layout .calibration-progress,
+.side-terminal-layout .operation-midpoint-reference,
+.side-terminal-layout .teleop-readout > div,
+.side-terminal-layout .motor-status-row {
+  padding: 10px;
+}
+
+.side-terminal-layout .teleop-joint-progress {
+  max-height: 180px;
+  overflow: auto;
+}
+
+.side-terminal-layout .teleop-readout {
+  grid-template-columns: 1fr;
+}
+
 .teleop-status-banner {
   padding: 12px;
   display: grid;
@@ -1934,12 +2793,25 @@ button:disabled {
     border-left: none;
   }
 
+  .setup-only-layout .content-panel {
+    padding: 18px;
+    border-top: none;
+  }
+
   .mission-selector {
     grid-template-columns: 1fr;
   }
 
   .robot-scene {
     min-height: 500px;
+  }
+
+  .connection-game-board {
+    height: clamp(420px, 64vh, 620px);
+  }
+
+  .connection-checks {
+    grid-template-columns: 1fr;
   }
 
   .limit-indicators,

@@ -13,9 +13,11 @@ type TeleoperationMissionProps = {
   leaderJointValues: JointValues;
   followerJointValues: JointValues;
   selectedJoint: JointName | null;
+  initialShowTutorial?: boolean;
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
+  onFinishTraining: () => void;
   onPreviewJointChange?: (jointName: JointName | null) => void;
 };
 
@@ -81,9 +83,11 @@ export default function TeleoperationMission({
   leaderJointValues,
   followerJointValues,
   selectedJoint,
+  initialShowTutorial = true,
   onStart,
   onStop,
   onReset,
+  onFinishTraining,
   onPreviewJointChange,
 }: TeleoperationMissionProps) {
   const [terminalInput, setTerminalInput] = useState("");
@@ -91,7 +95,7 @@ export default function TeleoperationMission({
   const [commandWasPasted, setCommandWasPasted] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const [tutorialIndex, setTutorialIndex] = useState(0);
-  const [showTutorial, setShowTutorial] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(initialShowTutorial);
   const complete = demonstratedJoints.length === jointOrder.length;
   const canSubmitCommand =
     commandWasPasted && normalizeCommand(terminalInput) === normalizedCommand;
@@ -336,6 +340,13 @@ export default function TeleoperationMission({
           <span>
             The Follower arm responded correctly to all Leader-arm controls.
           </span>
+          <button
+            className="primary-button"
+            onClick={onFinishTraining}
+            type="button"
+          >
+            Finish Training
+          </button>
         </div>
       )}
 

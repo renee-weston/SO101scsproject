@@ -35,7 +35,6 @@ type RobotSceneProps = {
   onJointValueChange?: (jointName: JointName, value: number) => void;
   onLeaderJointSelect?: (jointName: JointName) => void;
   onLeaderJointValueChange?: (jointName: JointName, value: number) => void;
-  onMidpointReferenceCapture?: (imageDataUrl: string) => void;
 };
 
 type MeshLoadDone = (mesh: THREE.Object3D | null, err?: Error) => void;
@@ -55,6 +54,7 @@ const leaderModelUrl = "/models/so101-leader/so101_leader.urdf";
 const minimumRobotDimension = 0.2;
 const renderSmoothingAlpha = 0.22;
 const directManipulationJumpThreshold = 45;
+const dualArmTeleoperationSpacing = 0.7;
 
 const defaultJointValues = Object.keys(jointConfigs).reduce(
   (values, jointName) => {
@@ -135,7 +135,6 @@ export default function RobotScene({
   onJointValueChange,
   onLeaderJointSelect,
   onLeaderJointValueChange,
-  onMidpointReferenceCapture,
 }: RobotSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const robotRef = useRef<URDFRobot | null>(null);
@@ -163,7 +162,6 @@ export default function RobotScene({
   const onJointValueChangeRef = useRef(onJointValueChange);
   const onLeaderJointSelectRef = useRef(onLeaderJointSelect);
   const onLeaderJointValueChangeRef = useRef(onLeaderJointValueChange);
-  const onMidpointReferenceCaptureRef = useRef(onMidpointReferenceCapture);
   const originalMaterialsRef = useRef(
     new WeakMap<THREE.Mesh, THREE.Material | THREE.Material[]>(),
   );
@@ -230,10 +228,6 @@ export default function RobotScene({
   }, [onLeaderJointValueChange]);
 
   useEffect(() => {
-    onMidpointReferenceCaptureRef.current = onMidpointReferenceCapture;
-  }, [onMidpointReferenceCapture]);
-
-  useEffect(() => {
     const container = containerRef.current;
 
     if (!container) {
@@ -247,7 +241,6 @@ export default function RobotScene({
     let lastHoveredJoint: JointName | null | undefined;
     const followerHomePosition = new THREE.Vector3();
     let lastShowLeaderLayout: boolean | null = null;
-    let midpointReferenceCaptured = false;
     let dragState: {
       jointName: JointName;
       target: "follower" | "leader";
@@ -274,10 +267,7 @@ export default function RobotScene({
       embeddedRef.current ? 1.25 : 1.7,
     );
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      preserveDrawingBuffer: true,
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.shadowMap.enabled = true;
@@ -290,6 +280,7 @@ export default function RobotScene({
     controls.dampingFactor = 0.08;
     controls.minDistance = 0.35;
     controls.maxDistance = 8;
+    controls.zoomToCursor = true;
     controls.enabled = !embeddedRef.current;
     controls.target.set(0, 0.25, 0);
 
@@ -1182,47 +1173,47 @@ export default function RobotScene({
         return;
       }
 
-      let boardGroup: THREE.Group | null = null;
       let boardRedAnchor: THREE.Object3D | null = null;
       let boardBlackAnchor: THREE.Object3D | null = null;
 
       if (options.includeBoard) {
-        boardGroup = new THREE.Group();
+        const boardScale = 0.5;
+        const boardGroup = new THREE.Group();
         boardGroup.name = "so101_controller_board";
         boardGroup.userData.robotAccessory = true;
         boardGroup.userData.armRole = options.owner;
-        boardGroup.position.set(-0.12, -0.13, 0.018);
-        boardGroup.rotation.z = -0.18;
+        boardGroup.position.set(-0.032, 0, 0.05);
+        boardGroup.rotation.set(0, Math.PI/2, Math.PI/2);
         baseLink.add(boardGroup);
         accessoryRoots.push(boardGroup);
 
         addBoxDetail(
           boardGroup,
           new THREE.Vector3(),
-          [0.105, 0.07, 0.006],
+          [0.105 * boardScale, 0.07 * boardScale, 0.006 * boardScale],
           detailMaterials.board,
         );
         addBoxDetail(
           boardGroup,
-          new THREE.Vector3(-0.052, 0.025, 0.007),
-          [0.016, 0.02, 0.009],
+          new THREE.Vector3(-0.052 * boardScale, 0.025 * boardScale, 0.007 * boardScale),
+          [0.016 * boardScale, 0.02 * boardScale, 0.009 * boardScale],
           detailMaterials.metal,
         );
         addBoxDetail(
           boardGroup,
-          new THREE.Vector3(0.052, 0.024, 0.007),
-          [0.018, 0.024, 0.009],
+          new THREE.Vector3(0.052 * boardScale, 0.024 * boardScale, 0.007 * boardScale),
+          [0.018 * boardScale, 0.024 * boardScale, 0.009 * boardScale],
           detailMaterials.metal,
         );
 
         boardRedAnchor = createAnchorObject(
           boardGroup,
-          new THREE.Vector3(0.045, 0.034, 0.011),
+          new THREE.Vector3(0.045 * boardScale, 0.034 * boardScale, 0.011 * boardScale),
           "controller_red_port",
         );
         boardBlackAnchor = createAnchorObject(
           boardGroup,
-          new THREE.Vector3(0.03, 0.034, 0.011),
+          new THREE.Vector3(0.03 * boardScale, 0.034 * boardScale, 0.011 * boardScale),
           "controller_black_port",
         );
       }
@@ -1315,56 +1306,6 @@ export default function RobotScene({
           options.owner,
         );
       }
-
-      if (!boardGroup) {
-        updateDynamicCables();
-        return;
-      }
-
-      const usbEndpoint = createAnchorObject(
-        robotDetails,
-        new THREE.Vector3(-0.65, 0.02, 0.18),
-        "usb_endpoint",
-      );
-      const powerEndpoint = createAnchorObject(
-        robotDetails,
-        new THREE.Vector3(0.68, 0.018, -0.13),
-        "power_endpoint",
-      );
-
-      addDynamicCable(
-        [
-          {
-            object: boardGroup,
-            localPosition: new THREE.Vector3(-0.052, 0.034, 0.011),
-          },
-          {
-            object: boardGroup,
-            localPosition: new THREE.Vector3(-0.13, 0.06, 0.024),
-          },
-          { object: usbEndpoint, localPosition: new THREE.Vector3() },
-        ],
-        detailMaterials.usbCable,
-        options.owner,
-        0.008,
-      );
-
-      addDynamicCable(
-        [
-          {
-            object: boardGroup,
-            localPosition: new THREE.Vector3(0.052, 0.034, 0.011),
-          },
-          {
-            object: boardGroup,
-            localPosition: new THREE.Vector3(0.14, 0.06, -0.024),
-          },
-          { object: powerEndpoint, localPosition: new THREE.Vector3() },
-        ],
-        detailMaterials.blackWire,
-        options.owner,
-        0.009,
-      );
 
       updateDynamicCables();
     };
@@ -1686,7 +1627,7 @@ export default function RobotScene({
       }
 
       const showLeader = showLeaderArmRef.current;
-      const spacing = 0.48;
+      const spacing = dualArmTeleoperationSpacing;
 
       follower.position.copy(followerHomePosition);
       follower.position.x += showLeader ? spacing : 0;
@@ -1812,77 +1753,6 @@ export default function RobotScene({
       return true;
     };
 
-    const captureMidpointReference = (robot: URDFRobot) => {
-      if (
-        midpointReferenceCaptured ||
-        !onMidpointReferenceCaptureRef.current
-      ) {
-        return;
-      }
-
-      midpointReferenceCaptured = true;
-
-      const currentValues = cloneJointValues(renderedJointValuesRef.current);
-      const previousCameraPosition = camera.position.clone();
-      const previousCameraQuaternion = camera.quaternion.clone();
-      const previousCameraUp = camera.up.clone();
-      const previousTarget = controls.target.clone();
-      const previousJointGizmoVisible = jointGizmo.visible;
-      const previousHoverGizmoVisible = hoverGizmo.visible;
-      const previousMarkerVisible = calibrationMarkerGroup.visible;
-      const leaderRobot = leaderRobotRef.current;
-      const previousLeaderVisible = leaderRobot?.visible ?? false;
-
-      jointGizmo.visible = false;
-      hoverGizmo.visible = false;
-      calibrationMarkerGroup.visible = false;
-
-      if (leaderRobot) {
-        leaderRobot.visible = false;
-      }
-
-      applyJointValues(robot, defaultJointValues);
-      updateDynamicCables();
-      robot.updateMatrixWorld(true);
-
-      const box = new THREE.Box3().setFromObject(robot);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const distance = Math.max(1.2, size.length() * 1.15);
-
-      controls.target.set(center.x + 0.02, center.y + size.y * 0.45, center.z);
-      camera.position.set(
-        center.x + 0.04,
-        center.y + distance * 0.34,
-        center.z + distance * 1.25,
-      );
-      camera.lookAt(controls.target);
-      camera.updateProjectionMatrix();
-      controls.update();
-      renderer.render(scene, camera);
-
-      onMidpointReferenceCaptureRef.current(
-        renderer.domElement.toDataURL("image/png"),
-      );
-
-      applyJointValues(robot, currentValues);
-      updateDynamicCables();
-      camera.position.copy(previousCameraPosition);
-      camera.quaternion.copy(previousCameraQuaternion);
-      camera.up.copy(previousCameraUp);
-      controls.target.copy(previousTarget);
-      jointGizmo.visible = previousJointGizmoVisible;
-      hoverGizmo.visible = previousHoverGizmoVisible;
-      calibrationMarkerGroup.visible = previousMarkerVisible;
-
-      if (leaderRobot) {
-        leaderRobot.visible = previousLeaderVisible;
-      }
-
-      camera.updateProjectionMatrix();
-      controls.update();
-    };
-
     const loadLeaderRobot = (follower: URDFRobot) => {
       if (leaderLoadStarted || leaderRobotRef.current) {
         return;
@@ -1923,7 +1793,7 @@ export default function RobotScene({
           leaderRobotRef.current = leaderRobot;
           scene.add(leaderRobot);
           buildRobotDetails(leaderRobot, {
-            includeBoard: false,
+            includeBoard: true,
             owner: "leader",
           });
           syncDualArmLayout();
@@ -1954,7 +1824,6 @@ export default function RobotScene({
         ensureRobotMaterials(robot, 0xf4f4f4);
         syncDualArmLayout();
         buildRobotDetails(robot, { includeBoard: true, owner: "follower" });
-        captureMidpointReference(robot);
         loadLeaderRobot(robot);
 
         if (!robotHadMeshError) {

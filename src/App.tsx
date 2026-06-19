@@ -158,9 +158,9 @@ function App() {
   const [demonstratedTeleopJoints, setDemonstratedTeleopJoints] = useState<
     JointName[]
   >([]);
-  const [midpointReferenceImage, setMidpointReferenceImage] = useState<
-    string | null
-  >(null);
+  const [showTeleopTutorialOnMount, setShowTeleopTutorialOnMount] =
+    useState(true);
+  const [calibrationSetupActive, setCalibrationSetupActive] = useState(false);
 
   useEffect(() => {
     jointValuesRef.current = jointValues;
@@ -183,6 +183,7 @@ function App() {
 
   const selectMission = (mission: number) => {
     setTrainingComplete(false);
+    setCalibrationSetupActive(false);
 
     if (mission === 3 && currentMission !== 3) {
       prepareCalibrationStart();
@@ -201,6 +202,7 @@ function App() {
       setHighlightedLeaderJoint(null);
       setCalibrationTargetArm("follower");
       setSelectableJoints(jointOrder);
+      setShowTeleopTutorialOnMount(true);
     }
 
     setCurrentMission(mission);
@@ -242,9 +244,32 @@ function App() {
     setHighlightedJoint(null);
     setHighlightedLeaderJoint(null);
     setDemonstratedTeleopJoints([]);
+    setShowTeleopTutorialOnMount(true);
     setCompletedMissions((current) =>
       current.filter((mission) => mission !== 4),
     );
+  };
+
+  const returnToTeleoperationPractice = () => {
+    const nextJointValues = createInitialJointValues();
+    const nextLeaderValues = createInitialJointValues();
+
+    jointValuesRef.current = nextJointValues;
+    leaderJointValuesRef.current = nextLeaderValues;
+    jointTargetValuesRef.current = nextJointValues;
+    leaderTargetValuesRef.current = nextLeaderValues;
+    setJointValues(nextJointValues);
+    setLeaderJointValues(nextLeaderValues);
+    setHighlightedJoint(null);
+    setHighlightedLeaderJoint(null);
+    setSelectableJoints(jointOrder);
+    setDemonstratedTeleopJoints([]);
+    setCalibrationTargetArm("follower");
+    setTeleoperationActive(true);
+    setRobotActivated(true);
+    setShowTeleopTutorialOnMount(false);
+    setTrainingComplete(false);
+    setCurrentMission(4);
   };
 
   const completeTeleoperationMission = useCallback(() => {
@@ -310,21 +335,35 @@ function App() {
       return;
     }
 
-    const nextFollowerValue = resolveStableJointInput(
-      "leader-to-follower",
-      jointName,
-      jointValuesRef.current[jointName],
-      jointTargetValuesRef.current[jointName],
+    const mapping = jointControlMappings[jointName];
+    const nextFollowerTargetAngle = clampAngle(
+      nextLeaderValue.targetAngle,
+      mapping,
+    );
+    const nextFollowerAppliedAngle = clampAngle(
       nextLeaderValue.finalAppliedAngle,
+      mapping,
     );
     const nextTargetValues = {
       ...jointTargetValuesRef.current,
-      [jointName]: nextFollowerValue.targetAngle,
+      [jointName]: nextFollowerTargetAngle,
     };
     const nextJointValues = {
       ...jointValuesRef.current,
-      [jointName]: nextFollowerValue.finalAppliedAngle,
+      [jointName]: nextFollowerAppliedAngle,
     };
+
+    console.debug("[teleop-control]", {
+      source: "leader-to-follower",
+      jointName,
+      rawInputValue: nextLeaderValue.finalAppliedAngle,
+      mappedTargetAngle: nextFollowerTargetAngle,
+      finalAppliedAngle: nextFollowerAppliedAngle,
+      deltaChange:
+        nextFollowerAppliedAngle - jointValuesRef.current[jointName],
+      rejected: false,
+      reason: "mirrored leader state",
+    });
 
     jointTargetValuesRef.current = nextTargetValues;
     jointValuesRef.current = nextJointValues;
@@ -337,17 +376,9 @@ function App() {
       Math.abs(nextLeaderValue.finalAppliedAngle - config.midpoint) >=
       movementThreshold
     ) {
-      const willComplete =
-        !demonstratedTeleopJoints.includes(jointName) &&
-        demonstratedTeleopJoints.length + 1 === jointOrder.length;
-
       setDemonstratedTeleopJoints((current) =>
         current.includes(jointName) ? current : [...current, jointName],
       );
-
-      if (willComplete) {
-        completeTeleoperationMission();
-      }
     }
   };
 
@@ -378,12 +409,9 @@ function App() {
           <p>You are now ready for real robot operation.</p>
           <button
             type="button"
-            onClick={() => {
-              setTrainingComplete(false);
-              setCurrentMission(4);
-            }}
+            onClick={returnToTeleoperationPractice}
           >
-            Enter Training Complete Mode
+            Return to Teleoperation
           </button>
         </section>
       </main>
@@ -410,7 +438,19 @@ function App() {
         onSelectMission={selectMission}
       />
 
-      <section className="game-layout">
+      <section
+        className={`game-layout ${
+          currentMission === 3 && calibrationSetupActive
+            ? "setup-only-layout"
+            : ""
+        } ${
+          (currentMission === 3 && !calibrationSetupActive) ||
+          currentMission === 4
+            ? "side-terminal-layout"
+            : ""
+        }`}
+      >
+        {!(currentMission === 3 && calibrationSetupActive) && (
         <div className="visual-panel">
           <RobotScene
             jointValues={jointValues}
@@ -440,7 +480,6 @@ function App() {
             onJointValueChange={updateFollowerJointValue}
             onLeaderJointSelect={setHighlightedLeaderJoint}
             onLeaderJointValueChange={updateLeaderJointValue}
-            onMidpointReferenceCapture={setMidpointReferenceImage}
           />
 
           {currentMission === 4 && (
@@ -466,6 +505,7 @@ function App() {
             <strong>{completedMissions.length} / 4</strong>
           </div>
         </div>
+        )}
 
         <div className="content-panel">
           {currentMission === 1 && (
@@ -485,9 +525,10 @@ function App() {
               onSelectableJointsChange={setSelectableJoints}
               onHighlightedJointChange={setHighlightedJoint}
               onHighlightedLeaderJointChange={setHighlightedLeaderJoint}
+              onConnectionSetupActiveChange={setCalibrationSetupActive}
               onCalibrationTargetChange={setCalibrationTargetArm}
-              midpointReferenceImage={midpointReferenceImage}
               onComplete={() => {
+                setCalibrationSetupActive(false);
                 setCalibrationTargetArm("follower");
                 setHighlightedLeaderJoint(null);
                 completeMission(3);
@@ -497,11 +538,14 @@ function App() {
 
           {currentMission === 4 && (
             <TeleoperationMission
+              key={showTeleopTutorialOnMount ? "teleop-guided" : "teleop-practice"}
               active={teleoperationActive}
               demonstratedJoints={demonstratedTeleopJoints}
               followerJointValues={jointValues}
               leaderJointValues={leaderJointValues}
+              initialShowTutorial={showTeleopTutorialOnMount}
               selectedJoint={highlightedLeaderJoint}
+              onFinishTraining={completeTeleoperationMission}
               onReset={resetTeleoperationMission}
               onStart={() => {
                 setTeleoperationActive(true);

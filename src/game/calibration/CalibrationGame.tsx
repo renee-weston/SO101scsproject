@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import InstructionPopup from "../../components/InstructionPopup";
+import SetupConnectionScene from "./SetupConnectionScene";
 import {
   createSavedCalibration,
   isCalibrationComplete,
@@ -27,22 +28,20 @@ type CalibrationGameProps = {
   jointValues: JointValues;
   leaderJointValues: JointValues;
   onComplete: () => void;
+  onConnectionSetupActiveChange?: (active: boolean) => void;
   onHighlightedJointChange: (jointName: JointName | null) => void;
   onHighlightedLeaderJointChange?: (jointName: JointName | null) => void;
   selectedJoint: JointName | null;
   onSelectedJointChange: (jointName: JointName | null) => void;
   onSelectableJointsChange: (jointNames: JointName[]) => void;
   onCalibrationTargetChange?: (target: CalibrationTarget) => void;
-  midpointReferenceImage?: string | null;
 };
 
 type TerminalMode = "enter" | "command" | "recording" | "complete";
 type TerminalStep =
-  | "follower_connect"
   | "follower_command"
   | "follower_midpoint"
   | "follower_recording"
-  | "leader_switch"
   | "leader_command"
   | "leader_midpoint"
   | "leader_recording"
@@ -54,17 +53,20 @@ type RangeRow = {
   pos: number;
   max: number;
 };
+type ConnectionMiniGameProps = {
+  onComplete: () => void;
+};
 
 const terminalPrompt = "(user@so101) $";
+const midpointReferenceImage = "/midpoint-reference.png";
+const calibrationRangeVideo = "/videos/calibration-range-instruction.mp4";
 const followerCommand = `lerobot-calibrate --robot.type=so101_follower \\
 --robot.port=/dev/ttyACM0 \\
 --robot.id=my_awesome_follower_arm`;
 const leaderCommand = `lerobot-calibrate --robot.type=so101_leader \\
 --robot.port=/dev/ttyACM1 \\
 --robot.id=my_awesome_leader_arm`;
-const midpointJointOrder = jointOrder.filter(
-  (jointName) => jointName !== "gripper",
-);
+const midpointJointOrder = jointOrder;
 
 const normalizeCommand = (value: string) =>
   value.replace(/\\\s*/g, " ").replace(/\s+/g, " ").trim();
@@ -152,26 +154,117 @@ const saveProfile = (storageKey: string, calibration: CalibrationState) => {
   return saved;
 };
 
+function ConnectionMiniGame({ onComplete }: ConnectionMiniGameProps) {
+  const [usbConnected, setUsbConnected] = useState(false);
+  const [powerPlugConnected, setPowerPlugConnected] = useState(false);
+  const [socketPowerOn, setSocketPowerOn] = useState(false);
+  const [feedback, setFeedback] = useState(
+    "Drag the USB plug into the glowing controller port.",
+  );
+  const completed = usbConnected && powerPlugConnected && socketPowerOn;
+
+  const completeUsbStep = () => {
+    setUsbConnected(true);
+    setFeedback("USB connected. Drag the power plug into the socket.");
+  };
+
+  const completePowerPlugStep = () => {
+    setPowerPlugConnected(true);
+    setFeedback("Power plug connected. Turn on the red socket switch.");
+  };
+
+  const completePowerStep = () => {
+    if (!usbConnected) {
+      setFeedback("Connect the USB cable before turning on power.");
+      return;
+    }
+
+    if (!powerPlugConnected) {
+      setFeedback("Plug the power cable into the socket before turning on power.");
+      return;
+    }
+
+    setSocketPowerOn(true);
+    setFeedback("Power switch on. Follower arm is ready for terminal detection.");
+  };
+
+  return (
+    <section className="connection-mini-game" aria-label="Follower arm connection game">
+      <div className="connection-game-header">
+        <span>Follower setup</span>
+        <strong>Connect USB and Power On</strong>
+        <p>
+          Practice the real setup step: connect the follower controller to the
+          computer, then turn on power.
+        </p>
+      </div>
+
+      <div className="connection-game-board">
+        <SetupConnectionScene
+          usbConnected={usbConnected}
+          powerPlugConnected={powerPlugConnected}
+          socketPowerOn={socketPowerOn}
+          onUsbConnected={completeUsbStep}
+          onPowerPlugConnected={completePowerPlugStep}
+          onPowerSwitch={completePowerStep}
+        />
+
+        {completed && (
+          <div className="connection-success-burst" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        )}
+      </div>
+
+      <div className={`connection-game-feedback ${completed ? "ready" : ""}`}>
+        <strong>{completed ? "Connection complete" : "Setup task"}</strong>
+        <span>{feedback}</span>
+      </div>
+
+      <div className="connection-checks">
+        <span className={usbConnected ? "complete" : ""}>USB cable connected</span>
+        <span className={powerPlugConnected ? "complete" : ""}>
+          Power plug connected
+        </span>
+        <span className={socketPowerOn ? "complete" : ""}>Power switch on</span>
+      </div>
+
+      <button
+        className="primary-button"
+        disabled={!completed}
+        onClick={onComplete}
+        type="button"
+      >
+        Continue to Terminal
+      </button>
+    </section>
+  );
+}
+
 export default function CalibrationGame({
   jointValues,
   leaderJointValues,
   onComplete,
+  onConnectionSetupActiveChange,
   onHighlightedJointChange,
   onHighlightedLeaderJointChange,
   onSelectedJointChange,
   onSelectableJointsChange,
   onCalibrationTargetChange,
-  midpointReferenceImage = null,
 }: CalibrationGameProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const streamTimersRef = useRef<number[]>([]);
   const followerValuesRef = useRef(jointValues);
   const leaderValuesRef = useRef(leaderJointValues);
-  const [step, setStep] = useState<TerminalStep>("follower_connect");
+  const [step, setStep] = useState<TerminalStep>("follower_command");
   const [terminalLines, setTerminalLines] = useState<string[]>([
-    "Connect the driver board of the follower arm via USB and power it on.",
+    "SO-101Follower connected on /dev/ttyACM0",
   ]);
   const [terminalInput, setTerminalInput] = useState("");
+  const [showLiveRecordingTable, setShowLiveRecordingTable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [activeArm, setActiveArm] = useState<CalibrationTarget>("follower");
   const [validationMessage, setValidationMessage] = useState<string | null>(
@@ -185,7 +278,14 @@ export default function CalibrationGame({
     null,
   );
   const [savedLeader, setSavedLeader] = useState<SavedCalibration | null>(null);
-  const [showMidpointReference, setShowMidpointReference] = useState(true);
+  const [connectionGameComplete, setConnectionGameComplete] = useState(false);
+  const [showMidpointReference, setShowMidpointReference] = useState(false);
+  const [midpointReferenceViewed, setMidpointReferenceViewed] = useState<
+    Record<CalibrationTarget, boolean>
+  >({ follower: false, leader: false });
+  const [rangeInstructionTarget, setRangeInstructionTarget] =
+    useState<CalibrationTarget | null>(null);
+  const [rangeInstructionViewed, setRangeInstructionViewed] = useState(false);
 
   const mode: TerminalMode = useMemo(() => {
     if (step === "complete") {
@@ -209,7 +309,7 @@ export default function CalibrationGame({
   const activeCalibration =
     activeArm === "leader" ? leaderCalibration : followerCalibration;
   const recordingRows =
-    mode === "recording" && activeCalibration
+    mode === "recording" && showLiveRecordingTable && activeCalibration
       ? createRowsFromLiveState(activeCalibration, activeJointValues)
       : null;
   const midpointIssue =
@@ -269,6 +369,7 @@ export default function CalibrationGame({
     }
 
     appendLines(["Recording positions. Press ENTER to stop...", ""]);
+    setShowLiveRecordingTable(true);
     setStep(target === "leader" ? "leader_recording" : "follower_recording");
   };
 
@@ -294,6 +395,7 @@ export default function CalibrationGame({
       return;
     }
 
+    setShowLiveRecordingTable(false);
     const finalRows = createRowsFromLiveState(calibration, values);
 
     appendLines(formatRangeTable(finalRows));
@@ -306,20 +408,20 @@ export default function CalibrationGame({
           "Saving follower calibration profile...",
           "Follower calibration complete.",
           "",
-          "Unplug follower arm USB.",
-          "Connect leader arm and ensure power is on.",
+          "SO-101Leader connected on /dev/ttyACM1",
         ],
         () => {
           setSavedFollower(
             saveProfile("so101-simulated-follower-calibration", calibration),
           );
           setActiveArm("leader");
-          setStep("leader_switch");
+          setStep("leader_command");
         },
       );
       return;
     }
 
+    setStep("final_confirm");
     streamLines(
       [
         "",
@@ -339,7 +441,6 @@ export default function CalibrationGame({
           JSON.stringify(saved),
         );
         setSavedLeader(saved);
-        setStep("final_confirm");
       },
     );
   };
@@ -370,9 +471,12 @@ export default function CalibrationGame({
           [
             "Running calibration of my_awesome_follower_arm SO101Follower",
             "Move all joints sequentially through their entire ranges of motion and press ENTER...",
-            "Move all joints (except gripper) to the middle of their range of motion and press ENTER.",
+            "Move all joints, including gripper, to the middle of their range of motion and press ENTER.",
           ],
-          () => setStep("follower_midpoint"),
+          () => {
+            setStep("follower_midpoint");
+            setShowMidpointReference(true);
+          },
         );
         return;
       }
@@ -380,9 +484,15 @@ export default function CalibrationGame({
       streamLines(
         [
           "Running calibration of my_awesome_leader_arm SO101Leader",
-          "Move leader arm to midpoint of all joints and press ENTER...",
+          "Move leader arm, including gripper, to midpoint of all joints and press ENTER...",
         ],
-        () => setStep("leader_midpoint"),
+        () => {
+          setMidpointReferenceViewed((current) => ({
+            ...current,
+            leader: true,
+          }));
+          setStep("leader_midpoint");
+        },
       );
       return;
     }
@@ -402,14 +512,6 @@ export default function CalibrationGame({
       return;
     }
 
-    if (step === "follower_connect") {
-      streamLines(
-        ["SO-101Follower connected on /dev/ttyACM0"],
-        () => setStep("follower_command"),
-      );
-      return;
-    }
-
     if (step === "follower_midpoint") {
       if (findMidpointIssue(jointValues)) {
         showValidation(
@@ -418,16 +520,11 @@ export default function CalibrationGame({
         return;
       }
 
-      startRecording("follower");
-      return;
-    }
-
-    if (step === "leader_switch") {
-      setActiveArm("leader");
-      streamLines(
-        ["SO-101Leader connected on /dev/ttyACM1"],
-        () => setStep("leader_command"),
-      );
+      if (rangeInstructionViewed) {
+        startRecording("follower");
+      } else {
+        setRangeInstructionTarget("follower");
+      }
       return;
     }
 
@@ -439,7 +536,11 @@ export default function CalibrationGame({
         return;
       }
 
-      startRecording("leader");
+      if (rangeInstructionViewed) {
+        startRecording("leader");
+      } else {
+        setRangeInstructionTarget("leader");
+      }
       return;
     }
 
@@ -475,6 +576,12 @@ export default function CalibrationGame({
   useEffect(() => {
     onCalibrationTargetChange?.(activeArm);
   }, [activeArm, onCalibrationTargetChange]);
+
+  useEffect(() => {
+    onConnectionSetupActiveChange?.(!connectionGameComplete);
+
+    return () => onConnectionSetupActiveChange?.(false);
+  }, [connectionGameComplete, onConnectionSetupActiveChange]);
 
   useEffect(() => {
     if (activeArm === "leader") {
@@ -546,47 +653,38 @@ export default function CalibrationGame({
 
       <div className="stage-callout">
         <strong>
-          {step === "complete"
+          {!connectionGameComplete
+            ? "Follower connection"
+            : step === "complete"
             ? "Calibration complete"
             : activeArm === "leader"
               ? "Leader calibration"
               : "Follower calibration"}
         </strong>
         <span>
-          {step === "complete"
+          {!connectionGameComplete
+            ? "Connect USB and turn on follower power before opening the terminal"
+            : step === "complete"
             ? "Follower and Leader profiles saved"
             : activeJoint
               ? `Move ${jointConfigs[activeJoint].label} now`
               : mode === "command"
                 ? "Paste and run the calibration command"
                 : mode === "recording"
-                  ? "Recording live joint ranges"
+                  ? "Press ENTER in the terminal to continue"
                   : step === "final_confirm"
                     ? "Press ENTER to show the final shell prompt"
                     : "Press ENTER in the terminal to continue"}
         </span>
       </div>
 
-      {!showMidpointReference && step !== "complete" && (
-        <aside
-          className="operation-midpoint-reference"
-          aria-label="Midpoint pose reference"
-        >
-          {midpointReferenceImage ? (
-            <img
-              alt="SO-101 arm in neutral midpoint calibration pose"
-              src={midpointReferenceImage}
-            />
-          ) : (
-            <div className="midpoint-reference-loading">
-              Preparing midpoint reference...
-            </div>
-          )}
-          <div>
-            <strong>Midpoint reference</strong>
-            <span>Match this pose during calibration.</span>
-          </div>
-        </aside>
+      {!connectionGameComplete && (
+        <ConnectionMiniGame
+          onComplete={() => {
+            setConnectionGameComplete(true);
+            setValidationMessage(null);
+          }}
+        />
       )}
 
       {validationMessage && (
@@ -595,7 +693,7 @@ export default function CalibrationGame({
         </div>
       )}
 
-      {mode === "command" && (
+      {connectionGameComplete && mode === "command" && (
         <div className="setup-command-card calibration-command-card">
           <pre>{activeCommand}</pre>
           <button type="button" onClick={copyCommand}>
@@ -604,56 +702,103 @@ export default function CalibrationGame({
         </div>
       )}
 
-      <div
-        className="terminal-window calibration-terminal"
-        onClick={() =>
-          document.getElementById("calibration-terminal-input")?.focus()
-        }
-      >
-        <div className="terminal-titlebar">
-          <span />
-          <span />
-          <span />
-          <strong>user@so101</strong>
+      {connectionGameComplete && (
+        <div
+          className="terminal-window calibration-terminal"
+          onClick={() =>
+            document.getElementById("calibration-terminal-input")?.focus()
+          }
+        >
+          <div className="terminal-titlebar">
+            <span />
+            <span />
+            <span />
+            <strong>user@so101</strong>
+          </div>
+          <div className="terminal-output" ref={terminalRef}>
+            {terminalLines.map((line, index) => (
+              <pre key={`${line}-${index}`}>{line}</pre>
+            ))}
+            {recordingRows && (
+              <div className="terminal-live-table">
+                {formatRangeTable(recordingRows).map((line) => (
+                  <pre key={line}>{line}</pre>
+                ))}
+              </div>
+            )}
+            {mode !== "complete" && (
+              <label className="terminal-prompt terminal-action-row">
+                <textarea
+                  id="calibration-terminal-input"
+                  value={terminalInput}
+                  disabled={busy && mode !== "recording"}
+                  onChange={(event) => setTerminalInput(event.currentTarget.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    mode === "command"
+                      ? "Paste calibration command"
+                      : "Press Enter"
+                  }
+                  rows={mode === "command" ? 3 : 1}
+                />
+                <button
+                  className="terminal-enter-small"
+                  disabled={busy && mode !== "recording"}
+                  type="button"
+                  onClick={submitCommand}
+                >
+                  Enter
+                </button>
+              </label>
+            )}
+          </div>
         </div>
-        <div className="terminal-output" ref={terminalRef}>
-          {terminalLines.map((line, index) => (
-            <pre key={`${line}-${index}`}>{line}</pre>
-          ))}
-          {recordingRows && (
-            <div className="terminal-live-table">
-              {formatRangeTable(recordingRows).map((line) => (
-                <pre key={line}>{line}</pre>
-              ))}
-            </div>
-          )}
-          {mode !== "complete" && (
-            <label className="terminal-prompt terminal-action-row">
-              <textarea
-                id="calibration-terminal-input"
-                value={terminalInput}
-                disabled={busy && mode !== "recording"}
-                onChange={(event) => setTerminalInput(event.currentTarget.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  mode === "command"
-                    ? "Paste calibration command"
-                    : "Press Enter"
-                }
-                rows={mode === "command" ? 3 : 1}
-              />
-              <button
-                className="terminal-enter-small"
-                disabled={busy && mode !== "recording"}
-                type="button"
-                onClick={submitCommand}
-              >
-                Enter
-              </button>
-            </label>
-          )}
-        </div>
-      </div>
+      )}
+
+      {mode === "recording" && (
+        <aside
+          className="operation-midpoint-reference range-side-reference"
+          aria-label="Range calibration video reference"
+        >
+          <video
+            controls
+            muted
+            playsInline
+            preload="metadata"
+            src={calibrationRangeVideo}
+          >
+            Your browser does not support the calibration instruction video.
+          </video>
+          <div>
+            <strong>Range guide</strong>
+            <span>Move each joint to both safe limits.</span>
+          </div>
+        </aside>
+      )}
+
+      {connectionGameComplete &&
+        mode !== "recording" &&
+        midpointReferenceViewed[activeArm] &&
+        !showMidpointReference &&
+        step !== "complete" && (
+        <aside
+          className="operation-midpoint-reference"
+          aria-label="Midpoint pose reference"
+        >
+          <img
+            alt="SO-101 arm in neutral midpoint calibration pose"
+            src={midpointReferenceImage}
+          />
+          <div>
+            <strong>Midpoint reference</strong>
+            <span>
+              {activeArm === "leader"
+                ? "Do the same procedure again for the leader arm."
+                : "Match this pose during calibration."}
+            </span>
+          </div>
+        </aside>
+      )}
 
       {step === "complete" && savedFollower && savedLeader && (
         <div className="completion-banner">
@@ -667,25 +812,24 @@ export default function CalibrationGame({
 
       {showMidpointReference && (
         <InstructionPopup
-          onNext={() => setShowMidpointReference(false)}
+          onNext={() => {
+            setMidpointReferenceViewed((current) => ({
+              ...current,
+              [activeArm]: true,
+            }));
+            setShowMidpointReference(false);
+          }}
           nextLabel="Start Calibration"
-          nextDisabled={!midpointReferenceImage}
           overlayClassName="static-instruction-overlay"
           showBack={false}
           stepLabel="Instruction Mode"
           title="Midpoint Pose Reference"
         >
           <div className="midpoint-reference-card">
-            {midpointReferenceImage ? (
-              <img
-                alt="SO-101 arm in neutral midpoint calibration pose"
-                src={midpointReferenceImage}
-              />
-            ) : (
-              <div className="midpoint-reference-loading">
-                Preparing midpoint reference...
-              </div>
-            )}
+            <img
+              alt="SO-101 arm in neutral midpoint calibration pose"
+              src={midpointReferenceImage}
+            />
             <div>
               <p>This is the neutral center pose of the robot.</p>
               <p>
@@ -693,6 +837,38 @@ export default function CalibrationGame({
                 range before live calibration begins.
               </p>
             </div>
+          </div>
+        </InstructionPopup>
+      )}
+
+      {rangeInstructionTarget && (
+        <InstructionPopup
+          onNext={() => {
+            const target = rangeInstructionTarget;
+
+            setRangeInstructionViewed(true);
+            setRangeInstructionTarget(null);
+            startRecording(target);
+          }}
+          nextLabel="Start Range Recording"
+          overlayClassName="range-video-overlay"
+          showBack={false}
+          stepLabel="Calibration Guide"
+          title="Move Through Full Range"
+        >
+          <div className="range-video-card">
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              src={calibrationRangeVideo}
+            >
+              Your browser does not support the calibration instruction video.
+            </video>
+            <p>
+              Move each joint to both safe limits so the simulator can record
+              the minimum and maximum positions.
+            </p>
           </div>
         </InstructionPopup>
       )}
