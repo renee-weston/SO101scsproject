@@ -21,13 +21,6 @@ Welcome to the **Science Centre Singapore Interactive Robotics Simulator**! This
 - Demonstrate STEM concepts interactively
 - Encourage curiosity and experimentation in robotics and electronics
 
-## How to Use
-
-1. **Drag the USB plug** from the laptop to the PCB board port.
-2. **Drag the power plug** to the socket to turn on the robot.
-3. **Observe cable routing** and learn how connections are completed.
-4. **Use mouse controls** to rotate, zoom, and pan the scene.
-5. Visual cues indicate **successful connections**.
 
 ## Tech Stack
 
