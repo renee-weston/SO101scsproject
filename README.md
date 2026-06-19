@@ -1,73 +1,47 @@
-# React + TypeScript + Vite
+# Science Centre Singapore – Interactive Robotics Simulator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
 
-Currently, two official plugins are available:
+Welcome to the **Science Centre Singapore Interactive Robotics Simulator**! This web-based 3D simulation is designed for **secondary and Junior College students** to explore robotics in a safe and engaging virtual environment. Students can learn about robot components, USB and power connections, and cable routing in a hands-on way without touching real hardware.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **3D interactive environment** built with Three.js
+- **SO-101 Robot arm** with movable joints (URDF model)
+- **Laptop, PCB board, and cables** to simulate real connections
+- **Drag-and-drop USB and power connections**
+- **Visual feedback** when connections are successful
+- **Realistic cable routing** for understanding hardware setups
+- **OrbitControls** to rotate, zoom, and pan the 3D scene
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Educational Goals
 
-## Expanding the ESLint configuration
+- Teach students how to connect USB and power plugs in robotics setups
+- Explore the structure and components of a robot safely
+- Demonstrate STEM concepts interactively
+- Encourage curiosity and experimentation in robotics and electronics
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## How to Use
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Drag the USB plug** from the laptop to the PCB board port.
+2. **Drag the power plug** to the socket to turn on the robot.
+3. **Observe cable routing** and learn how connections are completed.
+4. **Use mouse controls** to rotate, zoom, and pan the scene.
+5. Visual cues indicate **successful connections**.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Tech Stack
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **React.js** for the front-end
+- **Three.js** for 3D rendering
+- **FBXLoader / URDFLoader** for importing robot and setup models
+- **OrbitControls** for interactive scene manipulation
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Notes
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Designed for educational purposes only
+- Simplified simulation of real robotics setups
+- Cable positions, ports, and robot dimensions are approximate for clarity
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+
+Enjoy exploring robotics virtually!
