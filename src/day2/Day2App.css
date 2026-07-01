@@ -1,0 +1,713 @@
+.day2-app {
+  background: #0d1724;
+}
+
+.day2-header {
+  align-items: flex-start;
+}
+
+.day2-back-link {
+  flex: none;
+  padding: 10px 14px;
+  border: 1px solid #2e435b;
+  border-radius: 999px;
+  background: #142437;
+  color: #ffcf92;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.day2-layout {
+  grid-template-columns: minmax(0, 1fr) 520px;
+}
+
+.day2-visual-panel {
+  min-height: 0;
+  background:
+    linear-gradient(rgba(29, 75, 122, 0.48) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29, 75, 122, 0.48) 1px, transparent 1px),
+    radial-gradient(circle at 34% 36%, rgba(92, 160, 255, 0.14), transparent 28%),
+    #00264d;
+  background-size: 42px 42px, 42px 42px, auto, auto;
+}
+
+.day2-workflow-board {
+  position: absolute;
+  inset: 30px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 24px;
+}
+
+.day2-robot-cell,
+.day2-camera-cell,
+.day2-dataset-cell,
+.day2-training-cell {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(8, 18, 30, 0.48);
+}
+
+.day2-robot-cell {
+  grid-row: span 2;
+}
+
+.day2-robot-base,
+.day2-robot-column,
+.day2-robot-arm,
+.day2-robot-wrist,
+.day2-robot-gripper {
+  position: absolute;
+  display: block;
+  border-radius: 8px;
+  background: #f6f2e8;
+}
+
+.day2-robot-base {
+  left: 22%;
+  bottom: 18%;
+  width: 26%;
+  height: 9%;
+}
+
+.day2-robot-column {
+  left: 31%;
+  bottom: 25%;
+  width: 10%;
+  height: 35%;
+}
+
+.day2-robot-arm.lower {
+  left: 38%;
+  bottom: 57%;
+  width: 31%;
+  height: 7%;
+  transform: rotate(-13deg);
+  transform-origin: left center;
+}
+
+.day2-robot-arm.upper {
+  left: 62%;
+  bottom: 49%;
+  width: 22%;
+  height: 6%;
+  transform: rotate(28deg);
+  transform-origin: left center;
+}
+
+.day2-robot-wrist {
+  right: 12%;
+  bottom: 51%;
+  width: 9%;
+  height: 10%;
+  background: #1a1f27;
+}
+
+.day2-robot-gripper {
+  right: 4%;
+  bottom: 54%;
+  width: 13%;
+  height: 3%;
+  background: #ff9d2e;
+}
+
+.day2-robot-cell::before,
+.day2-robot-cell::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c83b3b, #f4f7fb, #090b0e);
+}
+
+.day2-robot-cell::before {
+  left: 31%;
+  top: 27%;
+  width: 49%;
+  height: 5px;
+  transform: rotate(-9deg);
+}
+
+.day2-robot-cell::after {
+  left: 23%;
+  bottom: 16%;
+  width: 34%;
+  height: 5px;
+  transform: rotate(22deg);
+}
+
+.day2-camera-body {
+  position: absolute;
+  left: 17%;
+  top: 30%;
+  width: 28%;
+  height: 26%;
+  border-radius: 10px;
+  background: #1a1f27;
+}
+
+.day2-camera-lens {
+  position: absolute;
+  left: 27%;
+  top: 36%;
+  width: 9%;
+  aspect-ratio: 1;
+  border: 6px solid #3f4b5f;
+  border-radius: 50%;
+  background: #07101a;
+}
+
+.day2-camera-view {
+  position: absolute;
+  right: 12%;
+  top: 22%;
+  width: 36%;
+  height: 42%;
+  border: 2px solid rgba(92, 225, 157, 0.58);
+  border-radius: 12px;
+  background: rgba(92, 225, 157, 0.12);
+}
+
+.day2-dataset-cell,
+.day2-training-cell {
+  padding: 18px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+}
+
+.day2-dataset-cell strong,
+.day2-training-cell strong {
+  color: white;
+  font-size: 1.2rem;
+}
+
+.day2-dataset-cell span,
+.day2-training-cell span {
+  color: #aab6c4;
+  font-weight: 700;
+}
+
+.day2-dataset-stack {
+  display: grid;
+  gap: 7px;
+}
+
+.day2-dataset-stack i {
+  height: 10px;
+  border-radius: 999px;
+  background: #22364c;
+}
+
+.day2-dataset-stack i.done {
+  background: #5ce19d;
+}
+
+.day2-loss-chart {
+  height: 92px;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.day2-loss-chart i {
+  flex: 1;
+  min-height: 16%;
+  border-radius: 8px 8px 0 0;
+  background: #22364c;
+}
+
+.day2-loss-chart i.active {
+  background: linear-gradient(180deg, #ff9d2e, #5ce19d);
+}
+
+.day2-stage-card {
+  display: grid;
+  gap: 10px;
+}
+
+.day2-stage-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day2-stage-check {
+  padding: 8px 10px;
+  border: 1px solid #2e435b;
+  border-radius: 10px;
+  background: #122031;
+  color: #c4ceda;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.day2-stage-check.complete {
+  border-color: rgba(92, 225, 157, 0.6);
+  color: #d6f5df;
+}
+
+.day2-action-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.day2-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day2-builder-grid label {
+  display: grid;
+  gap: 4px;
+}
+
+.day2-builder-grid label:first-child,
+.day2-builder-grid label:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.day2-builder-grid span {
+  color: #ffcf92;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.day2-builder-grid input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #2e435b;
+  border-radius: 9px;
+  outline: none;
+  background: #07101a;
+  color: #e7eef6;
+  font: 0.84rem var(--font-mono, monospace);
+}
+
+.day2-recording-screen,
+.day2-inspector-panel,
+.day2-training-dashboard,
+.day2-autonomy-panel,
+.day2-result-panel,
+.day2-replay-panel {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid #2e435b;
+  border-radius: 12px;
+  background: #122031;
+}
+
+.day2-recording-screen {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.day2-camera-feed,
+.day2-thumbnail {
+  min-height: 92px;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  border: 1px solid rgba(92, 225, 157, 0.26);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 56%, rgba(255, 157, 46, 0.2), transparent 18%),
+    linear-gradient(135deg, rgba(92, 160, 255, 0.2), rgba(8, 18, 30, 0.5));
+  color: white;
+  text-align: center;
+}
+
+.day2-camera-feed.side,
+.day2-thumbnail.side {
+  border-color: rgba(92, 160, 255, 0.34);
+  background:
+    radial-gradient(circle at 62% 42%, rgba(92, 225, 157, 0.2), transparent 18%),
+    linear-gradient(135deg, rgba(255, 157, 46, 0.18), rgba(8, 18, 30, 0.5));
+}
+
+.day2-camera-feed strong {
+  text-transform: uppercase;
+}
+
+.day2-camera-feed span,
+.day2-recorder-status span,
+.day2-recorder-status small,
+.day2-inspector-panel span,
+.day2-result-panel span {
+  color: #aab6c4;
+}
+
+.day2-recorder-status {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.day2-recorder-status strong {
+  color: #5ce19d;
+}
+
+.day2-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day2-quality-card {
+  padding: 10px;
+  display: grid;
+  gap: 7px;
+  border: 1px solid #2e435b;
+  border-radius: 10px;
+  background: #122031;
+}
+
+.day2-quality-card.correct {
+  border-color: rgba(92, 225, 157, 0.62);
+}
+
+.day2-quality-card.incorrect {
+  border-color: rgba(255, 96, 96, 0.62);
+}
+
+.day2-quality-card strong {
+  color: white;
+}
+
+.day2-quality-card span {
+  color: #aab6c4;
+  font-size: 0.84rem;
+}
+
+.day2-episode-grid,
+.day2-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day2-episode-card,
+.day2-metric-card {
+  padding: 10px;
+  border: 1px solid #2e435b;
+  border-radius: 10px;
+  background: #122031;
+  color: inherit;
+  text-align: center;
+}
+
+.day2-episode-card {
+  display: grid;
+  gap: 6px;
+}
+
+.day2-episode-card.selected {
+  border-color: #ff9d2e;
+  background: rgba(255, 157, 46, 0.12);
+}
+
+.day2-episode-card strong,
+.day2-metric-card strong {
+  display: block;
+  color: white;
+}
+
+.day2-episode-card span,
+.day2-metric-card span {
+  color: #aab6c4;
+  font-size: 0.75rem;
+}
+
+.day2-episode-card em {
+  color: #c4ceda;
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.day2-episode-card small {
+  justify-self: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #07101a;
+  font-weight: 900;
+}
+
+.day2-episode-card small.success {
+  background: #5ce19d;
+}
+
+.day2-episode-card small.review {
+  background: #ffcf92;
+}
+
+.day2-thumbnail {
+  min-height: 38px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.day2-episode-card.done,
+.day2-metric-card.good {
+  border-color: rgba(92, 225, 157, 0.62);
+  background: rgba(92, 225, 157, 0.1);
+}
+
+.day2-inspector-panel {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.day2-frame-timeline {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+}
+
+.day2-frame-timeline i {
+  height: 28px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #5ca0ff, #22364c);
+}
+
+.day2-graph-panel {
+  display: grid;
+  gap: 6px;
+}
+
+.day2-mini-graph {
+  height: 40px;
+  border-radius: 8px;
+  background:
+    linear-gradient(150deg, transparent 0 12%, rgba(92, 225, 157, 0.9) 12% 15%, transparent 15% 34%, rgba(255, 157, 46, 0.9) 34% 37%, transparent 37% 63%, rgba(92, 160, 255, 0.9) 63% 66%, transparent 66%),
+    #07101a;
+}
+
+.day2-mini-graph.action {
+  background:
+    linear-gradient(28deg, transparent 0 18%, rgba(255, 157, 46, 0.9) 18% 21%, transparent 21% 48%, rgba(92, 225, 157, 0.9) 48% 51%, transparent 51%),
+    #07101a;
+}
+
+.day2-replay-panel {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.day2-replay-track {
+  position: relative;
+  height: 54px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #07101a;
+}
+
+.day2-replay-track span {
+  position: absolute;
+  left: 10%;
+  top: 16px;
+  width: 28px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.day2-replay-track .recorded {
+  background: #ff9d2e;
+}
+
+.day2-replay-track .replayed {
+  top: 28px;
+  background: #5ce19d;
+}
+
+.day2-replay-track .moving.recorded {
+  left: 70%;
+  transition: left 0.8s ease;
+}
+
+.day2-replay-track .moving.replayed {
+  left: 68%;
+  transition: left 0.8s ease;
+}
+
+.day2-act-pipeline,
+.day2-command-tabs,
+.day2-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.day2-act-pipeline {
+  align-items: center;
+}
+
+.day2-act-pipeline span,
+.day2-act-pipeline strong {
+  padding: 9px 10px;
+  border: 1px solid #2e435b;
+  border-radius: 999px;
+  background: #122031;
+  color: #c4ceda;
+  font-size: 0.82rem;
+}
+
+.day2-act-pipeline strong {
+  border-color: rgba(255, 157, 46, 0.6);
+  color: #ffcf92;
+}
+
+.day2-command-tabs button {
+  padding: 9px 12px;
+  border: 1px solid #2e435b;
+  border-radius: 999px;
+  background: #122031;
+  color: #c4ceda;
+  font-weight: 900;
+}
+
+.day2-command-tabs button.active {
+  border-color: #ff9d2e;
+  color: #ffcf92;
+}
+
+.day2-training-dashboard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.day2-training-dashboard .day2-loss-chart {
+  grid-column: 1 / -1;
+}
+
+.day2-safety-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day2-safety-item {
+  padding: 9px 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #2e435b;
+  border-radius: 10px;
+  background: #122031;
+  color: #c4ceda;
+  font-weight: 800;
+}
+
+.day2-safety-item.checked {
+  border-color: rgba(92, 225, 157, 0.62);
+  color: #d6f5df;
+}
+
+.day2-autonomy-panel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.day2-policy-robot {
+  position: relative;
+  height: 86px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #07101a;
+}
+
+.day2-policy-robot span {
+  position: absolute;
+  display: block;
+  border-radius: 7px;
+  background: #f6f2e8;
+}
+
+.day2-policy-robot span:nth-child(1) {
+  left: 18%;
+  bottom: 20px;
+  width: 20%;
+  height: 12px;
+}
+
+.day2-policy-robot span:nth-child(2) {
+  left: 35%;
+  bottom: 32px;
+  width: 32%;
+  height: 10px;
+  transform: rotate(-16deg);
+}
+
+.day2-policy-robot span:nth-child(3) {
+  left: 60%;
+  bottom: 44px;
+  width: 22%;
+  height: 8px;
+  transform: rotate(26deg);
+  background: #ff9d2e;
+}
+
+.day2-policy-robot.running span:nth-child(2) {
+  animation: day2PolicyMove 1.2s ease-in-out infinite alternate;
+}
+
+.day2-result-panel {
+  border-color: rgba(92, 225, 157, 0.62);
+}
+
+.day2-result-panel strong {
+  color: #5ce19d;
+}
+
+.day2-status-note {
+  padding: 10px 12px;
+  border: 1px solid rgba(92, 225, 157, 0.42);
+  border-radius: 10px;
+  background: rgba(92, 225, 157, 0.1);
+  color: #d6f5df;
+  font-weight: 800;
+}
+
+@keyframes day2PolicyMove {
+  from {
+    transform: rotate(-18deg) translateX(0);
+  }
+
+  to {
+    transform: rotate(4deg) translateX(22px);
+  }
+}
+
+@media (max-width: 1180px), (max-height: 600px) {
+  .day2-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .day2-visual-panel {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 700px) {
+  .day2-stage-checks,
+  .day2-builder-grid,
+  .day2-recording-screen,
+  .day2-quality-grid,
+  .day2-inspector-panel,
+  .day2-replay-panel,
+  .day2-training-dashboard,
+  .day2-safety-grid,
+  .day2-autonomy-panel,
+  .day2-episode-grid,
+  .day2-metric-grid {
+    grid-template-columns: 1fr;
+  }
+}

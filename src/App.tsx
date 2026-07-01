@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import MissionSelector from "./components/MissionSelector";
-import JointQuiz from "./game/JointQuiz";
 import MotorSetupMission from "./game/MotorSetupMission";
 import TeleoperationMission from "./game/TeleoperationMission";
+import UsbIdentificationMission from "./game/UsbIdentificationMission";
 import CalibrationGame from "./game/calibration/CalibrationGame";
 import {
   createInitialJointValues,
@@ -14,7 +14,30 @@ import type {
   JointName,
   JointValues,
 } from "./game/calibration/calibrationTypes";
-import RobotScene from "./robot/RobotScene";
+import RobotScene, {
+  type ConnectorAdjust,
+  type ConnectorKey,
+} from "./robot/RobotScene";
+
+const DEFAULT_ADJUST: ConnectorAdjust = {
+  px: 0,
+  py: -0.004, // −4.0 mm default (slider is mm)
+  pz: 0,
+  rx: -180, // default flip about the connector's local X
+  ry: 0,
+  rz: 0,
+};
+const CONNECTOR_ADJUST_KEY = "so101.connectorAdjusts";
+
+const loadConnectorAdjusts = (): Record<string, ConnectorAdjust> => {
+  try {
+    const saved = localStorage.getItem(CONNECTOR_ADJUST_KEY);
+    return saved ? (JSON.parse(saved) as Record<string, ConnectorAdjust>) : {};
+  } catch {
+    return {};
+  }
+};
+
 import "./App.css";
 
 const confettiPieces = Array.from({ length: 70 }, (_, index) => ({
@@ -35,6 +58,16 @@ type JointControlMapping = {
   minAngle: number;
   maxAngle: number;
 };
+
+type MotorSetupTarget = "follower" | "leader";
+type SelectedSetupMotor = {
+  target: MotorSetupTarget;
+  jointName: JointName;
+} | null;
+type MotorSetupProgress = Record<MotorSetupTarget, JointName[]>;
+
+const requiredStagesBeforeGraduation = [1, 2, 3] as const;
+const allTrainingStages = [1, 2, 3, 4] as const;
 
 const jointControlMappings = jointOrder.reduce((mappings, jointName) => {
   const config = jointConfigs[jointName];
@@ -161,6 +194,58 @@ function App() {
   const [showTeleopTutorialOnMount, setShowTeleopTutorialOnMount] =
     useState(true);
   const [calibrationSetupActive, setCalibrationSetupActive] = useState(false);
+  const [connectorAdjusts, setConnectorAdjusts] = useState<
+    Record<string, ConnectorAdjust>
+  >(loadConnectorAdjusts);
+  const [motorSetupTarget, setMotorSetupTarget] =
+    useState<MotorSetupTarget>("follower");
+  const [selectedSetupMotor, setSelectedSetupMotor] =
+    useState<SelectedSetupMotor>(null);
+  const [motorSetupConfiguredJoints, setMotorSetupConfiguredJoints] =
+    useState<MotorSetupProgress>({ follower: [], leader: [] });
+  const [motorSetupConnectedJoint, setMotorSetupConnectedJoint] =
+    useState<JointName | null>(null);
+  const [motorSetupChained, setMotorSetupChained] = useState(false);
+  const [usbConnections, setUsbConnections] = useState<{
+    follower: boolean;
+    leader: boolean;
+  }>({ follower: false, leader: false });
+  const [usbActiveArm, setUsbActiveArm] = useState<
+    "follower" | "leader" | null
+  >(null);
+  const missingGraduationStages = requiredStagesBeforeGraduation.filter(
+    (mission) => !completedMissions.includes(mission),
+  );
+  const allStagesComplete = allTrainingStages.every((mission) =>
+    completedMissions.includes(mission),
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        CONNECTOR_ADJUST_KEY,
+        JSON.stringify(connectorAdjusts),
+      );
+    } catch {
+      // ignore persistence failures (e.g. storage disabled)
+    }
+  }, [connectorAdjusts]);
+
+  const handleConnectorsChange = useCallback((ids: ConnectorKey[]) => {
+    // Seed any connector without a saved adjust with the default so the default
+    // offset (e.g. py = -4mm) is actually applied, not just shown on the slider.
+    setConnectorAdjusts((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const id of ids) {
+        if (!next[id]) {
+          next[id] = { ...DEFAULT_ADJUST };
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, []);
 
   useEffect(() => {
     jointValuesRef.current = jointValues;
@@ -181,9 +266,45 @@ function App() {
     setCalibrationTargetArm("follower");
   };
 
+  const handleCalibrationTargetChange = (target: "follower" | "leader") => {
+    if (target === "leader" && calibrationTargetArm !== "leader") {
+      const nextLeaderValues = createRandomCalibrationPose();
+
+      leaderJointValuesRef.current = nextLeaderValues;
+      leaderTargetValuesRef.current = nextLeaderValues;
+      setLeaderJointValues(nextLeaderValues);
+      setHighlightedLeaderJoint(null);
+    }
+
+    setCalibrationTargetArm(target);
+  };
+
   const selectMission = (mission: number) => {
     setTrainingComplete(false);
     setCalibrationSetupActive(false);
+
+    if (mission === 1) {
+      setSelectedSetupMotor(null);
+      setHighlightedJoint(null);
+      setHighlightedLeaderJoint(null);
+      setUsbConnections({ follower: false, leader: false });
+      setUsbActiveArm(null);
+    }
+
+    if (mission === 2) {
+      setMotorSetupTarget("follower");
+      setSelectedSetupMotor(null);
+      setHighlightedJoint(null);
+      setHighlightedLeaderJoint(null);
+      setSelectableJoints([]);
+      setMotorSetupConnectedJoint(null);
+      setMotorSetupChained(false);
+      // Stand the follower in the midpoint standard pose for motor setup.
+      const midpointPose = createInitialJointValues();
+      jointValuesRef.current = midpointPose;
+      jointTargetValuesRef.current = midpointPose;
+      setJointValues(midpointPose);
+    }
 
     if (mission === 3 && currentMission !== 3) {
       prepareCalibrationStart();
@@ -220,6 +341,20 @@ function App() {
     if (mission < 4) {
       const nextMission = mission + 1;
 
+      if (nextMission === 2) {
+        setMotorSetupTarget("follower");
+        setSelectedSetupMotor(null);
+        setHighlightedJoint(null);
+        setHighlightedLeaderJoint(null);
+        setSelectableJoints([]);
+        setMotorSetupConnectedJoint(null);
+        setMotorSetupChained(false);
+        const midpointPose = createInitialJointValues();
+        jointValuesRef.current = midpointPose;
+        jointTargetValuesRef.current = midpointPose;
+        setJointValues(midpointPose);
+      }
+
       if (nextMission === 3) {
         prepareCalibrationStart();
       }
@@ -250,29 +385,20 @@ function App() {
     );
   };
 
-  const returnToTeleoperationPractice = () => {
-    const nextJointValues = createInitialJointValues();
-    const nextLeaderValues = createInitialJointValues();
-
-    jointValuesRef.current = nextJointValues;
-    leaderJointValuesRef.current = nextLeaderValues;
-    jointTargetValuesRef.current = nextJointValues;
-    leaderTargetValuesRef.current = nextLeaderValues;
-    setJointValues(nextJointValues);
-    setLeaderJointValues(nextLeaderValues);
-    setHighlightedJoint(null);
-    setHighlightedLeaderJoint(null);
-    setSelectableJoints(jointOrder);
-    setDemonstratedTeleopJoints([]);
-    setCalibrationTargetArm("follower");
-    setTeleoperationActive(true);
-    setRobotActivated(true);
-    setShowTeleopTutorialOnMount(false);
-    setTrainingComplete(false);
-    setCurrentMission(4);
+  const restartTrainingFromStart = () => {
+    window.location.reload();
   };
 
   const completeTeleoperationMission = useCallback(() => {
+    const missingRequiredStages = requiredStagesBeforeGraduation.filter(
+      (mission) => !completedMissions.includes(mission),
+    );
+
+    if (missingRequiredStages.length > 0) {
+      setTrainingComplete(false);
+      return;
+    }
+
     setRobotActivated(true);
     setTrainingComplete(true);
     setTeleoperationActive(false);
@@ -285,7 +411,7 @@ function App() {
 
       return [...current, 4];
     });
-  }, []);
+  }, [completedMissions]);
 
   const updateFollowerJointValue = (jointName: JointName, value: number) => {
     const nextValue = resolveStableJointInput(
@@ -382,7 +508,42 @@ function App() {
     }
   };
 
-  if (trainingComplete) {
+  const handleMotorSetupMotorSelect = useCallback(
+    (target: MotorSetupTarget, jointName: JointName) => {
+      setMotorSetupTarget(target);
+      setSelectedSetupMotor({ target, jointName });
+
+      if (target === "leader") {
+        setHighlightedLeaderJoint(jointName);
+        setHighlightedJoint(null);
+        return;
+      }
+
+      setHighlightedJoint(jointName);
+      setHighlightedLeaderJoint(null);
+    },
+    [],
+  );
+
+  const handleUsbPortClick = useCallback((arm: "follower" | "leader") => {
+    setUsbConnections((current) => ({ ...current, [arm]: !current[arm] }));
+  }, []);
+
+  const handleMotorSetupActiveMotorChange = useCallback(
+    (jointName: JointName | null) => {
+      if (motorSetupTarget === "leader") {
+        setHighlightedLeaderJoint(jointName);
+        setHighlightedJoint(null);
+        return;
+      }
+
+      setHighlightedJoint(jointName);
+      setHighlightedLeaderJoint(null);
+    },
+    [motorSetupTarget],
+  );
+
+  if (trainingComplete && allStagesComplete) {
     return (
       <main className="training-complete-screen">
         <div className="confetti-layer" aria-hidden="true">
@@ -409,9 +570,9 @@ function App() {
           <p>You are now ready for real robot operation.</p>
           <button
             type="button"
-            onClick={returnToTeleoperationPractice}
+            onClick={restartTrainingFromStart}
           >
-            Return to Teleoperation
+            Restart Training
           </button>
         </section>
       </main>
@@ -425,10 +586,6 @@ function App() {
           <p className="eyebrow">SO-101 ROBOT LAB</p>
           <h1>Robot Setup Quest</h1>
           <p>Learn how to prepare and operate the SO-101.</p>
-        </div>
-
-        <div className="status-badge">
-          {robotActivated ? "SO-101 Online" : "Training Mode"}
         </div>
       </header>
 
@@ -444,6 +601,7 @@ function App() {
             ? "setup-only-layout"
             : ""
         } ${
+          currentMission === 1 ||
           (currentMission === 3 && !calibrationSetupActive) ||
           currentMission === 4
             ? "side-terminal-layout"
@@ -462,17 +620,38 @@ function App() {
               currentMission === 4
             }
             directControlTarget={
-              currentMission === 4
+              currentMission === 2
+                ? motorSetupTarget
+                : currentMission === 4
                 ? "leader"
                 : currentMission === 3
                   ? calibrationTargetArm
                   : "follower"
             }
             showLeaderArm={
+              currentMission === 1 ||
               currentMission === 4 ||
               (currentMission === 3 && calibrationTargetArm === "leader")
             }
             teleoperationActive={teleoperationActive}
+            motorSetupActive={currentMission === 2}
+            motorSetupTarget={motorSetupTarget}
+            motorSetupActiveJoint={
+              motorSetupTarget === "leader"
+                ? highlightedLeaderJoint
+                : highlightedJoint
+            }
+            motorSetupConfiguredJoints={
+              motorSetupConfiguredJoints[motorSetupTarget]
+            }
+            motorSetupConnectedJoint={
+              currentMission === 2 ? motorSetupConnectedJoint : null
+            }
+            motorSetupChained={currentMission === 2 && motorSetupChained}
+            usbSetupActive={currentMission === 1}
+            usbConnections={usbConnections}
+            usbActiveArm={currentMission === 1 ? usbActiveArm : null}
+            onUsbPortClick={handleUsbPortClick}
             selectableJoints={
               currentMission === 4 ? jointOrder : selectableJoints
             }
@@ -480,12 +659,15 @@ function App() {
             onJointValueChange={updateFollowerJointValue}
             onLeaderJointSelect={setHighlightedLeaderJoint}
             onLeaderJointValueChange={updateLeaderJointValue}
+            connectorAdjust={connectorAdjusts}
+            onConnectorsChange={handleConnectorsChange}
+            onMotorSetupMotorSelect={handleMotorSetupMotorSelect}
           />
 
-          {currentMission === 4 && (
-            <>
-              <div className="arm-role-label leader-label">
-                <strong>LEADER ARM</strong>
+	          {currentMission === 4 && (
+	            <>
+	              <div className="arm-role-label leader-label">
+	                <strong>LEADER ARM</strong>
                 <span>Move this arm</span>
               </div>
               <div className="arm-role-label follower-label">
@@ -493,12 +675,18 @@ function App() {
                 <span>Copies the Leader</span>
               </div>
               {teleoperationActive && <div className="teleop-link-indicator" />}
-            </>
-          )}
+	            </>
+	          )}
 
-          <div className="visual-status">
-            <span>
-              {currentMission === 4 && teleoperationActive
+          <div className="camera-control-hints" aria-label="Simulator camera controls">
+            <span>Drag to rotate</span>
+            <span>Scroll to zoom</span>
+            <span>Right drag to pan</span>
+          </div>
+
+	          <div className="visual-status">
+	            <span>
+	              {currentMission === 4 && teleoperationActive
                 ? "Teleoperation"
                 : "System progress"}
             </span>
@@ -509,11 +697,31 @@ function App() {
 
         <div className="content-panel">
           {currentMission === 1 && (
-            <JointQuiz onComplete={() => completeMission(1)} />
+            <UsbIdentificationMission
+              usbConnections={usbConnections}
+              onUsbActiveArmChange={setUsbActiveArm}
+              onSetUsbConnections={setUsbConnections}
+              onComplete={() => completeMission(1)}
+            />
           )}
 
           {currentMission === 2 && (
-            <MotorSetupMission onComplete={() => completeMission(2)} />
+            <MotorSetupMission
+              selectedMotor={selectedSetupMotor}
+              setupTarget={motorSetupTarget}
+              configuredJoints={motorSetupConfiguredJoints}
+              onSetupTargetChange={(target) => {
+                setMotorSetupTarget(target);
+                setSelectedSetupMotor(null);
+                setHighlightedJoint(null);
+                setHighlightedLeaderJoint(null);
+              }}
+              onConfiguredJointsChange={setMotorSetupConfiguredJoints}
+              onActiveMotorChange={handleMotorSetupActiveMotorChange}
+              onConnectedMotorChange={setMotorSetupConnectedJoint}
+              onChainedChange={setMotorSetupChained}
+              onComplete={() => completeMission(2)}
+            />
           )}
 
           {currentMission === 3 && (
@@ -526,7 +734,7 @@ function App() {
               onHighlightedJointChange={setHighlightedJoint}
               onHighlightedLeaderJointChange={setHighlightedLeaderJoint}
               onConnectionSetupActiveChange={setCalibrationSetupActive}
-              onCalibrationTargetChange={setCalibrationTargetArm}
+              onCalibrationTargetChange={handleCalibrationTargetChange}
               onComplete={() => {
                 setCalibrationSetupActive(false);
                 setCalibrationTargetArm("follower");
@@ -545,6 +753,8 @@ function App() {
               leaderJointValues={leaderJointValues}
               initialShowTutorial={showTeleopTutorialOnMount}
               selectedJoint={highlightedLeaderJoint}
+              canFinishTraining={missingGraduationStages.length === 0}
+              missingTrainingStages={missingGraduationStages}
               onFinishTraining={completeTeleoperationMission}
               onReset={resetTeleoperationMission}
               onStart={() => {
@@ -563,6 +773,7 @@ function App() {
           )}
         </div>
       </section>
+
     </main>
   );
 }

@@ -6,7 +6,6 @@ import {
   type KeyboardEvent,
 } from "react";
 import InstructionPopup from "../../components/InstructionPopup";
-import SetupConnectionScene from "./SetupConnectionScene";
 import {
   createSavedCalibration,
   isCalibrationComplete,
@@ -53,9 +52,6 @@ type RangeRow = {
   pos: number;
   max: number;
 };
-type ConnectionMiniGameProps = {
-  onComplete: () => void;
-};
 
 const terminalPrompt = "(user@so101) $";
 const midpointReferenceImage = "/midpoint-reference.png";
@@ -67,6 +63,14 @@ const leaderCommand = `lerobot-calibrate --robot.type=so101_leader \\
 --robot.port=/dev/ttyACM1 \\
 --robot.id=my_awesome_leader_arm`;
 const midpointJointOrder = jointOrder;
+const compactJointLabels: Record<JointName, string> = {
+  shoulder_pan: "SP",
+  shoulder_lift: "SL",
+  elbow_flex: "EF",
+  wrist_flex: "WF",
+  wrist_roll: "WR",
+  gripper: "GR",
+};
 
 const normalizeCommand = (value: string) =>
   value.replace(/\\\s*/g, " ").replace(/\s+/g, " ").trim();
@@ -81,6 +85,29 @@ const formatRangeTable = (rows: RangeRow[]) => [
     return `${name} ${formatTableValue(row.min)}    ${formatTableValue(row.pos)}    ${formatTableValue(row.max)}`;
   }),
 ];
+
+const getLimitProgress = (
+  state: CalibrationState[JointName] | undefined,
+  jointName: JointName,
+) => {
+  if (!state) {
+    return {
+      minReached: false,
+      maxReached: false,
+    };
+  }
+
+  const config = jointConfigs[jointName];
+  const range = config.max - config.min;
+  const limitTolerance = Math.max(config.tolerance, range * 0.12);
+
+  return {
+    minReached:
+      state.reachedMinimum || state.observedMin <= config.min + limitTolerance,
+    maxReached:
+      state.reachedMaximum || state.observedMax >= config.max - limitTolerance,
+  };
+};
 
 const createObservedCalibration = (jointValues: JointValues): CalibrationState =>
   jointOrder.reduce((calibration, jointName) => {
@@ -154,95 +181,22 @@ const saveProfile = (storageKey: string, calibration: CalibrationState) => {
   return saved;
 };
 
-function ConnectionMiniGame({ onComplete }: ConnectionMiniGameProps) {
-  const [usbConnected, setUsbConnected] = useState(false);
-  const [powerPlugConnected, setPowerPlugConnected] = useState(false);
-  const [socketPowerOn, setSocketPowerOn] = useState(false);
-  const [feedback, setFeedback] = useState(
-    "Drag the USB plug into the glowing controller port.",
-  );
-  const completed = usbConnected && powerPlugConnected && socketPowerOn;
+const copyTextFallback = (text: string) => {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.top = "-9999px";
+  textArea.style.opacity = "0";
+  document.body.appendChild(textArea);
+  textArea.select();
+  textArea.setSelectionRange(0, textArea.value.length);
 
-  const completeUsbStep = () => {
-    setUsbConnected(true);
-    setFeedback("USB connected. Drag the power plug into the socket.");
-  };
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textArea);
 
-  const completePowerPlugStep = () => {
-    setPowerPlugConnected(true);
-    setFeedback("Power plug connected. Turn on the red socket switch.");
-  };
-
-  const completePowerStep = () => {
-    if (!usbConnected) {
-      setFeedback("Connect the USB cable before turning on power.");
-      return;
-    }
-
-    if (!powerPlugConnected) {
-      setFeedback("Plug the power cable into the socket before turning on power.");
-      return;
-    }
-
-    setSocketPowerOn(true);
-    setFeedback("Power switch on. Follower arm is ready for terminal detection.");
-  };
-
-  return (
-    <section className="connection-mini-game" aria-label="Follower arm connection game">
-      <div className="connection-game-header">
-        <span>Follower setup</span>
-        <strong>Connect USB and Power On</strong>
-        <p>
-          Practice the real setup step: connect the follower controller to the
-          computer, then turn on power.
-        </p>
-      </div>
-
-      <div className="connection-game-board">
-        <SetupConnectionScene
-          usbConnected={usbConnected}
-          powerPlugConnected={powerPlugConnected}
-          socketPowerOn={socketPowerOn}
-          onUsbConnected={completeUsbStep}
-          onPowerPlugConnected={completePowerPlugStep}
-          onPowerSwitch={completePowerStep}
-        />
-
-        {completed && (
-          <div className="connection-success-burst" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-        )}
-      </div>
-
-      <div className={`connection-game-feedback ${completed ? "ready" : ""}`}>
-        <strong>{completed ? "Connection complete" : "Setup task"}</strong>
-        <span>{feedback}</span>
-      </div>
-
-      <div className="connection-checks">
-        <span className={usbConnected ? "complete" : ""}>USB cable connected</span>
-        <span className={powerPlugConnected ? "complete" : ""}>
-          Power plug connected
-        </span>
-        <span className={socketPowerOn ? "complete" : ""}>Power switch on</span>
-      </div>
-
-      <button
-        className="primary-button"
-        disabled={!completed}
-        onClick={onComplete}
-        type="button"
-      >
-        Continue to Terminal
-      </button>
-    </section>
-  );
-}
+  return copied;
+};
 
 export default function CalibrationGame({
   jointValues,
@@ -278,7 +232,7 @@ export default function CalibrationGame({
     null,
   );
   const [savedLeader, setSavedLeader] = useState<SavedCalibration | null>(null);
-  const [connectionGameComplete, setConnectionGameComplete] = useState(false);
+  const connectionGameComplete = true;
   const [showMidpointReference, setShowMidpointReference] = useState(false);
   const [midpointReferenceViewed, setMidpointReferenceViewed] = useState<
     Record<CalibrationTarget, boolean>
@@ -286,6 +240,7 @@ export default function CalibrationGame({
   const [rangeInstructionTarget, setRangeInstructionTarget] =
     useState<CalibrationTarget | null>(null);
   const [rangeInstructionViewed, setRangeInstructionViewed] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
 
   const mode: TerminalMode = useMemo(() => {
     if (step === "complete") {
@@ -320,6 +275,14 @@ export default function CalibrationGame({
     mode === "recording" ? findRangeIssue(activeCalibration) : null;
   const activeJoint = midpointIssue ?? rangeIssue;
   const progressCount = (savedFollower ? 1 : 0) + (savedLeader ? 1 : 0);
+  const showJointProgress =
+    connectionGameComplete &&
+    (step === "follower_midpoint" ||
+      step === "follower_recording" ||
+      step === "leader_midpoint" ||
+      step === "leader_recording");
+  const isMidpointStep =
+    step === "follower_midpoint" || step === "leader_midpoint";
 
   const appendLines = (lines: string[]) => {
     setTerminalLines((current) => [...current, ...lines]);
@@ -551,7 +514,30 @@ export default function CalibrationGame({
   };
 
   const copyCommand = async () => {
-    await navigator.clipboard.writeText(activeCommand);
+    let copied = false;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(activeCommand);
+        copied = true;
+      }
+    } catch {
+      copied = false;
+    }
+
+    if (!copied) {
+      copied = copyTextFallback(activeCommand);
+    }
+
+    if (copied) {
+      const copiedValue = activeCommand;
+      setCopiedCommand(copiedValue);
+      window.setTimeout(() => {
+        setCopiedCommand((current) => (current === copiedValue ? null : current));
+      }, 1600);
+    } else {
+      setCopiedCommand(null);
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -652,40 +638,88 @@ export default function CalibrationGame({
       </div>
 
       <div className="stage-callout">
-        <strong>
-          {!connectionGameComplete
-            ? "Follower connection"
-            : step === "complete"
-            ? "Calibration complete"
-            : activeArm === "leader"
-              ? "Leader calibration"
-              : "Follower calibration"}
-        </strong>
-        <span>
-          {!connectionGameComplete
-            ? "Connect USB and turn on follower power before opening the terminal"
-            : step === "complete"
-            ? "Follower and Leader profiles saved"
-            : activeJoint
-              ? `Move ${jointConfigs[activeJoint].label} now`
-              : mode === "command"
-                ? "Paste and run the calibration command"
-                : mode === "recording"
-                  ? "Press ENTER in the terminal to continue"
-                  : step === "final_confirm"
-                    ? "Press ENTER to show the final shell prompt"
-                    : "Press ENTER in the terminal to continue"}
-        </span>
-      </div>
+        <div className="stage-callout-copy">
+          <strong>
+            {!connectionGameComplete
+              ? "Follower connection"
+              : step === "complete"
+              ? "Calibration complete"
+              : activeArm === "leader"
+                ? "Leader calibration"
+                : "Follower calibration"}
+          </strong>
+          <span>
+            {!connectionGameComplete
+              ? "Connect USB and turn on follower power before opening the terminal"
+              : step === "complete"
+              ? "Follower and Leader profiles saved"
+              : activeJoint
+                ? `Move ${jointConfigs[activeJoint].label} now`
+                : mode === "command"
+                  ? "Paste and run the calibration command"
+                  : mode === "recording"
+                    ? "Press ENTER in the terminal to continue"
+                    : step === "final_confirm"
+                      ? "Press ENTER to show the final shell prompt"
+                      : "Press ENTER in the terminal to continue"}
+          </span>
+        </div>
 
-      {!connectionGameComplete && (
-        <ConnectionMiniGame
-          onComplete={() => {
-            setConnectionGameComplete(true);
-            setValidationMessage(null);
-          }}
-        />
-      )}
+        {showJointProgress && (
+          <div
+            className="calibration-joint-strip"
+            aria-label={`${activeArm} joint calibration progress`}
+          >
+            {jointOrder.map((jointName) => {
+              const state = activeCalibration?.[jointName];
+              const { minReached, maxReached } = getLimitProgress(
+                state,
+                jointName,
+              );
+              const midpointReached = isNearMidpoint(
+                activeJointValues[jointName],
+                jointConfigs[jointName],
+              );
+              const rangeComplete = minReached && maxReached;
+              const complete = isMidpointStep ? midpointReached : rangeComplete;
+              const firstIndicatorDone = isMidpointStep
+                ? midpointReached
+                : minReached;
+              const secondIndicatorDone = isMidpointStep
+                ? midpointReached
+                : maxReached;
+              const statusText = complete
+                ? isMidpointStep
+                  ? "midpoint ready"
+                  : "done"
+                : state
+                  ? `needs ${[
+                      minReached ? null : "minimum",
+                      maxReached ? null : "maximum",
+                    ]
+                      .filter(Boolean)
+                      .join(" and ")}`
+                  : midpointReached
+                    ? "midpoint ready"
+                    : "needs midpoint";
+
+              return (
+                <span
+                  className={`calibration-joint-token ${
+                    complete ? "complete" : ""
+                  } ${activeJoint === jointName ? "active" : ""}`}
+                  key={jointName}
+                  title={`${jointConfigs[jointName].label}: ${statusText}`}
+                >
+                  <span>{compactJointLabels[jointName]}</span>
+                  <i className={firstIndicatorDone ? "done" : ""} />
+                  <i className={secondIndicatorDone ? "done" : ""} />
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {validationMessage && (
         <div className="calibration-validation-error" role="alert">
@@ -694,10 +728,17 @@ export default function CalibrationGame({
       )}
 
       {connectionGameComplete && mode === "command" && (
-        <div className="setup-command-card calibration-command-card">
-          <pre>{activeCommand}</pre>
-          <button type="button" onClick={copyCommand}>
-            Copy Command
+        <div className="terminal-command-card calibration-command-card">
+          <div>
+            <span className="terminal-command-label">Copy this command</span>
+            <code>{activeCommand}</code>
+          </div>
+          <button
+            type="button"
+            className="terminal-copy-btn"
+            onClick={copyCommand}
+          >
+            {copiedCommand === activeCommand ? "Copied!" : "Copy Command"}
           </button>
         </div>
       )}
@@ -726,32 +767,38 @@ export default function CalibrationGame({
                 ))}
               </div>
             )}
-            {mode !== "complete" && (
-              <label className="terminal-prompt terminal-action-row">
-                <textarea
-                  id="calibration-terminal-input"
-                  value={terminalInput}
-                  disabled={busy && mode !== "recording"}
-                  onChange={(event) => setTerminalInput(event.currentTarget.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={
-                    mode === "command"
-                      ? "Paste calibration command"
-                      : "Press Enter"
-                  }
-                  rows={mode === "command" ? 3 : 1}
-                />
-                <button
-                  className="terminal-enter-small"
-                  disabled={busy && mode !== "recording"}
-                  type="button"
-                  onClick={submitCommand}
-                >
-                  Enter
-                </button>
-              </label>
-            )}
           </div>
+          {mode !== "complete" && (
+            <form
+              className="terminal-input-line terminal-input-line-textarea"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitCommand();
+              }}
+            >
+              <textarea
+                id="calibration-terminal-input"
+                className="terminal-input terminal-textarea"
+                value={terminalInput}
+                disabled={busy && mode !== "recording"}
+                onChange={(event) => setTerminalInput(event.currentTarget.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  mode === "command"
+                    ? "Paste calibration command"
+                    : "Press Enter"
+                }
+                rows={mode === "command" ? 3 : 1}
+              />
+              <button
+                className="terminal-enter-button"
+                disabled={busy && mode !== "recording"}
+                type="submit"
+              >
+                Enter
+              </button>
+            </form>
+          )}
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import InstructionPopup from "../components/InstructionPopup";
 import {
   formatJointValue,
@@ -13,6 +13,8 @@ type TeleoperationMissionProps = {
   leaderJointValues: JointValues;
   followerJointValues: JointValues;
   selectedJoint: JointName | null;
+  canFinishTraining: boolean;
+  missingTrainingStages: readonly number[];
   initialShowTutorial?: boolean;
   onStart: () => void;
   onStop: () => void;
@@ -31,51 +33,24 @@ const teleoperationCommand = `lerobot-teleoperate \\
 
 const normalizedCommand =
   "lerobot-teleoperate --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=follower_arm --teleop.type=so101_leader --teleop.port=/dev/ttyACM1 --teleop.id=leader_arm";
+const teleoperationInstructionVideo = "/videos/Teleoperation%20instruction.webm";
 
 const normalizeCommand = (value: string) =>
   value.replace(/\\\s*/g, " ").replace(/\s+/g, " ").trim();
 
 const teleopTutorialSteps = [
-  "Leader vs Follower",
-  "Control Mapping",
-  "Motion Preview",
+  "Teleoperation Mechanism",
+  "Move Leader to Control Follower",
   "Activate Teleoperation",
-  "Try It Yourself",
 ];
-
-function TeleopArmImage({ role }: { role: "leader" | "follower" }) {
-  return (
-    <div className={`teleop-arm-image ${role}`} role="img">
-      <span className="teleop-arm-base" />
-      <span className="teleop-arm-link link-a" />
-      <span className="teleop-arm-link link-b" />
-      <span className="teleop-arm-link link-c" />
-      <span className="teleop-arm-joint joint-a" />
-      <span className="teleop-arm-joint joint-b" />
-      <span className="teleop-arm-gripper" />
-      <strong>{role === "leader" ? "LEADER" : "FOLLOWER"}</strong>
-    </div>
-  );
-}
-
-function LeaderFollowerAnimation() {
-  return (
-    <div className="leader-follower-animation" role="img">
-      <TeleopArmImage role="leader" />
-      <span className="teleop-signal-line" />
-      <TeleopArmImage role="follower" />
-    </div>
-  );
-}
-
-function TeleopDragAnimation() {
-  return (
-    <div className="teleop-drag-animation" role="img">
-      <span className="drag-hand">DRAG</span>
-      <LeaderFollowerAnimation />
-    </div>
-  );
-}
+const compactJointLabels: Record<JointName, string> = {
+  shoulder_pan: "SP",
+  shoulder_lift: "SL",
+  elbow_flex: "EF",
+  wrist_flex: "WF",
+  wrist_roll: "WR",
+  gripper: "GR",
+};
 
 export default function TeleoperationMission({
   active,
@@ -83,6 +58,8 @@ export default function TeleoperationMission({
   leaderJointValues,
   followerJointValues,
   selectedJoint,
+  canFinishTraining,
+  missingTrainingStages,
   initialShowTutorial = true,
   onStart,
   onStop,
@@ -90,6 +67,7 @@ export default function TeleoperationMission({
   onFinishTraining,
   onPreviewJointChange,
 }: TeleoperationMissionProps) {
+  const terminalRef = useRef<HTMLDivElement | null>(null);
   const [terminalInput, setTerminalInput] = useState("");
   const [terminalLines, setTerminalLines] = useState<string[]>([]);
   const [commandWasPasted, setCommandWasPasted] = useState(false);
@@ -99,6 +77,13 @@ export default function TeleoperationMission({
   const complete = demonstratedJoints.length === jointOrder.length;
   const canSubmitCommand =
     commandWasPasted && normalizeCommand(terminalInput) === normalizedCommand;
+
+  useEffect(() => {
+    terminalRef.current?.scrollTo({
+      top: terminalRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [terminalLines]);
 
   const copyCommand = async () => {
     await navigator.clipboard.writeText(teleoperationCommand);
@@ -140,8 +125,7 @@ export default function TeleoperationMission({
     setTerminalInput("");
     setCommandWasPasted(false);
     onStart();
-    setTutorialIndex(4);
-    setShowTutorial(true);
+    setShowTutorial(false);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -185,71 +169,51 @@ export default function TeleoperationMission({
   const renderTutorialVisual = () => {
     if (tutorialIndex === 0) {
       return (
-        <>
-          <LeaderFollowerAnimation />
+        <div className="teleop-intro-copy">
           <p>
-            Move the black Leader arm by hand. The white Follower arm responds
-            with the same joint motion.
+            Congratulations! You have reached the final stage, and you are
+            ready for teleoperation.
           </p>
-        </>
+          <p>
+            In this stage, you will move the black Leader arm and watch the
+            white Follower arm mirror its motion. This is the same control idea
+            used when operating the real SO-101 system.
+          </p>
+        </div>
       );
     }
 
     if (tutorialIndex === 1) {
       return (
-        <div className="teleop-mapping-table">
-          {jointOrder.map((jointName) => (
-            <button
-              key={jointName}
-              onBlur={() => onPreviewJointChange?.(null)}
-              onFocus={() => onPreviewJointChange?.(jointName)}
-              onMouseEnter={() => onPreviewJointChange?.(jointName)}
-              onMouseLeave={() => onPreviewJointChange?.(null)}
-              type="button"
-            >
-              <span>{jointName}</span>
-              <strong>Leader to Follower</strong>
-              <span>{jointName}</span>
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    if (tutorialIndex === 2) {
-      return (
-        <>
-          <TeleopDragAnimation />
+        <div className="teleop-video-card">
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            src={teleoperationInstructionVideo}
+          >
+            Your browser does not support the teleoperation instruction video.
+          </video>
           <p>
-            The Leader is the input. The Follower is the output. The motion
-            should look synchronized while teleoperation is active.
+            Drag the Leader arm to control the Follower arm.
           </p>
-        </>
-      );
-    }
-
-    if (tutorialIndex === 3) {
-      return (
-        <div className="teleop-activation-preview">
-          <button type="button" onClick={copyCommand}>
-            {copyState === "copied" ? "Copied" : "Copy Command"}
-          </button>
-          <pre>{teleoperationCommand}</pre>
-          <ol>
-            <li>Copy command</li>
-            <li>Paste into terminal</li>
-            <li>Press Enter</li>
-            <li>System connects both arms</li>
-          </ol>
         </div>
       );
     }
 
     return (
-      <>
-        <TeleopDragAnimation />
-        <p>Click and drag highlighted Leader joints to control the robot.</p>
-      </>
+      <div className="teleop-activation-preview">
+        <button type="button" onClick={copyCommand}>
+          {copyState === "copied" ? "Copied" : "Copy Command"}
+        </button>
+        <pre>{teleoperationCommand}</pre>
+        <ol>
+          <li>Copy command</li>
+          <li>Paste into terminal</li>
+          <li>Press Enter</li>
+          <li>System connects both arms</li>
+        </ol>
+      </div>
     );
   };
 
@@ -259,15 +223,60 @@ export default function TeleoperationMission({
       <h2>Teleoperate the Follower Arm</h2>
 
       <div className={`teleop-status-banner ${active ? "active" : ""}`}>
-        <span>{active ? "TELEOPERATION ACTIVE" : "TELEOPERATION DISABLED"}</span>
-        <strong>
-          Teleoperation Test: {demonstratedJoints.length} / {jointOrder.length}
-        </strong>
+        <div className="teleop-status-copy">
+          <div className="teleop-status-heading">
+            <span>
+              {active ? "TELEOPERATION ACTIVE" : "TELEOPERATION DISABLED"}
+            </span>
+            <div
+              className="teleop-compact-progress"
+              aria-label="Teleoperation joint progress"
+            >
+              {jointOrder.map((jointName) => {
+                const demonstrated = demonstratedJoints.includes(jointName);
+                const selected = selectedJoint === jointName;
+
+                return (
+                  <span
+                    className={`calibration-joint-token ${
+                      demonstrated ? "complete" : ""
+                    } ${selected ? "active" : ""}`}
+                    key={jointName}
+                    title={`${jointConfigs[jointName].label}: ${
+                      demonstrated ? "demonstrated" : "waiting"
+                    }`}
+                  >
+                    <span>{compactJointLabels[jointName]}</span>
+                    <i className={demonstrated ? "done" : ""} />
+                    <i className={demonstrated ? "done" : ""} />
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          <strong>
+            Teleoperation Test: {demonstratedJoints.length} / {jointOrder.length}
+          </strong>
+          <em>
+            {complete
+              ? "All Leader joints have controlled the Follower arm."
+              : active
+                ? "Move each Leader joint until its indicator turns green."
+                : "Run the teleoperation command to begin controlling the Follower arm."}
+          </em>
+        </div>
       </div>
 
-      <div className="setup-command-card">
-        <pre>{teleoperationCommand}</pre>
-        <button type="button" onClick={copyCommand}>
+      <div className="terminal-command-card">
+        <div>
+          <span className="terminal-command-label">Copy this command</span>
+          <code>{teleoperationCommand}</code>
+        </div>
+        <button
+          type="button"
+          className="terminal-copy-btn"
+          onClick={copyCommand}
+        >
           {copyState === "copied" ? "Copied" : "Copy Command"}
         </button>
       </div>
@@ -282,33 +291,44 @@ export default function TeleoperationMission({
           <span />
           <strong>student@so101-lab</strong>
         </div>
-        <div className="terminal-output">
+        <div className="terminal-output" ref={terminalRef}>
           {terminalLines.map((line, index) => (
             <pre key={`${line}-${index}`}>{line}</pre>
           ))}
-          {!active && !complete && (
-            <label className="terminal-prompt">
-              <span>student@so101-lab:~$</span>
-              <textarea
-                id="teleop-terminal-input"
-                value={terminalInput}
-                onChange={(event) => {
-                  setTerminalInput(event.currentTarget.value);
-                  if (!event.currentTarget.value) {
-                    setCommandWasPasted(false);
-                  }
-                }}
-                onKeyDown={handleKeyDown}
-                onPaste={() => setCommandWasPasted(true)}
-                placeholder="Paste teleoperation command here"
-                rows={2}
-              />
-              <button disabled={!canSubmitCommand} type="button" onClick={submitCommand}>
-                Enter
-              </button>
-            </label>
-          )}
         </div>
+        {!active && !complete && (
+          <form
+            className="terminal-input-line terminal-input-line-textarea"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitCommand();
+            }}
+          >
+            <span className="terminal-prompt">student@so101-lab:~$</span>
+            <textarea
+              id="teleop-terminal-input"
+              className="terminal-input terminal-textarea"
+              value={terminalInput}
+              onChange={(event) => {
+                setTerminalInput(event.currentTarget.value);
+                if (!event.currentTarget.value) {
+                  setCommandWasPasted(false);
+                }
+              }}
+              onKeyDown={handleKeyDown}
+              onPaste={() => setCommandWasPasted(true)}
+              placeholder="Paste teleoperation command here"
+              rows={2}
+            />
+            <button
+              className="terminal-enter-button"
+              disabled={!canSubmitCommand}
+              type="submit"
+            >
+              Enter
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="teleop-readout">
@@ -338,37 +358,20 @@ export default function TeleoperationMission({
         <div className="stage-callout">
           <strong>Teleoperation successful.</strong>
           <span>
-            The Follower arm responded correctly to all Leader-arm controls.
+            {canFinishTraining
+              ? "The Follower arm responded correctly to all Leader-arm controls."
+              : `Complete Stage ${missingTrainingStages.join(", Stage ")} before finishing training.`}
           </span>
           <button
             className="primary-button"
-            onClick={onFinishTraining}
+            disabled={!canFinishTraining}
+            onClick={canFinishTraining ? onFinishTraining : undefined}
             type="button"
           >
             Finish Training
           </button>
         </div>
       )}
-
-      <div className="teleop-joint-progress">
-        {jointOrder.map((jointName) => (
-          <div
-            className={`motor-status-row ${
-              demonstratedJoints.includes(jointName) ? "complete" : ""
-            }`}
-            key={jointName}
-          >
-            <strong>{jointConfigs[jointName].label}</strong>
-            <span>
-              {demonstratedJoints.includes(jointName)
-                ? "Demonstrated"
-                : active
-                  ? "Move Leader joint"
-                  : "Waiting"}
-            </span>
-          </div>
-        ))}
-      </div>
 
       <div className="button-row">
         <button
@@ -388,14 +391,8 @@ export default function TeleoperationMission({
         <InstructionPopup
           onBack={tutorialIndex > 0 ? moveTutorialBack : undefined}
           onNext={moveTutorialForward}
-          nextLabel={
-            tutorialIndex === 3
-              ? "Open Terminal"
-              : tutorialIndex === 4
-                ? "Try It"
-                : "Next"
-          }
-          showBack={tutorialIndex > 0 && tutorialIndex < 4}
+          nextLabel={tutorialIndex === 2 ? "Open Terminal" : "Next"}
+          showBack={tutorialIndex > 0}
           stepLabel={`Step ${tutorialIndex + 1} / ${teleopTutorialSteps.length}`}
           title={teleopTutorialSteps[tutorialIndex]}
         >

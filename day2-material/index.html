@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SO-101 Day 2 - Dataset Recording and Training</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <p class="eyebrow">SO-101 ROBOT LAB</p>
+        <h1>Day 2: Dataset Recording and Training</h1>
+        <p>
+          Practice the full LeRobot workflow after setup: record clean
+          demonstrations, inspect the dataset, train a policy, and decide when
+          it is ready to test.
+        </p>
+      </header>
+
+      <nav class="mission-selector" aria-label="Day 2 stages">
+        <button class="mission-tab active" data-stage="0" type="button">
+          <span class="mission-tab-number">1</span>
+          <span class="mission-tab-text">
+            <span class="mission-tab-eyebrow">Stage 1</span>
+            <span class="mission-tab-title">Plan Recording</span>
+          </span>
+          <span class="mission-tab-state">Playing</span>
+        </button>
+        <button class="mission-tab" data-stage="1" type="button">
+          <span class="mission-tab-number">2</span>
+          <span class="mission-tab-text">
+            <span class="mission-tab-eyebrow">Stage 2</span>
+            <span class="mission-tab-title">Record Episodes</span>
+          </span>
+          <span class="mission-tab-state">To do</span>
+        </button>
+        <button class="mission-tab" data-stage="2" type="button">
+          <span class="mission-tab-number">3</span>
+          <span class="mission-tab-text">
+            <span class="mission-tab-eyebrow">Stage 3</span>
+            <span class="mission-tab-title">Review Dataset</span>
+          </span>
+          <span class="mission-tab-state">To do</span>
+        </button>
+        <button class="mission-tab" data-stage="3" type="button">
+          <span class="mission-tab-number">4</span>
+          <span class="mission-tab-text">
+            <span class="mission-tab-eyebrow">Stage 4</span>
+            <span class="mission-tab-title">Train Policy</span>
+          </span>
+          <span class="mission-tab-state">To do</span>
+        </button>
+      </nav>
+
+      <section class="game-layout">
+        <section class="visual-panel" aria-label="Day 2 workflow visualization">
+          <div class="workflow-board">
+            <div class="robot-cell">
+              <span class="robot-base"></span>
+              <span class="robot-column"></span>
+              <span class="robot-arm lower"></span>
+              <span class="robot-arm upper"></span>
+              <span class="robot-wrist"></span>
+              <span class="robot-gripper"></span>
+            </div>
+            <div class="camera-cell">
+              <span class="camera-body"></span>
+              <span class="camera-lens"></span>
+              <span class="camera-view"></span>
+            </div>
+            <div class="dataset-cell">
+              <strong>Dataset</strong>
+              <span id="episode-count">0 / 5 episodes</span>
+              <div class="dataset-stack" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+              </div>
+            </div>
+            <div class="training-cell">
+              <strong>Policy Training</strong>
+              <span id="training-state">Waiting for data</span>
+              <div class="loss-chart" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="visual-status">
+            <span>Day 2 progress</span>
+            <strong id="progress-count">0 / 4</strong>
+          </div>
+        </section>
+
+        <section class="content-panel">
+          <div class="stage-kicker" id="stage-kicker">Stage 1</div>
+          <article class="stage-card">
+            <h2 id="stage-title">Plan the recording session</h2>
+            <p id="stage-description"></p>
+            <div class="stage-checks" id="stage-checks"></div>
+          </article>
+
+          <div class="terminal-command-card">
+            <div>
+              <span class="terminal-command-label">Copy this command</span>
+              <code id="stage-command"></code>
+            </div>
+            <button class="terminal-copy-btn" id="copy-command" type="button">
+              Copy
+            </button>
+          </div>
+
+          <div class="terminal-window">
+            <div class="terminal-titlebar">
+              <span></span>
+              <span></span>
+              <span></span>
+              <strong>student@so101-lab</strong>
+            </div>
+            <div class="terminal-output" id="terminal-output" aria-live="polite"></div>
+            <form class="terminal-input-line" id="terminal-form">
+              <span class="terminal-prompt">student@so101-lab:~$</span>
+              <textarea
+                class="terminal-input"
+                id="terminal-input"
+                rows="2"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="Paste the command and press Enter"
+              ></textarea>
+              <button class="terminal-enter-button" type="submit">Enter</button>
+            </form>
+          </div>
+
+          <div class="stage-action-panel" id="stage-action-panel"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
